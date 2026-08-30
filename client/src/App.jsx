@@ -77,8 +77,42 @@ const FONTS = (
     .ferrari-shine { position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(115deg, transparent, rgba(255,255,255,0.55), transparent); transform: skewX(-18deg); animation: ferrari-shine-sweep 3.6s ease-in-out infinite; animation-delay: 1s; mix-blend-mode: overlay; }
     @keyframes ferrari-shine-sweep { 0% { left: -60%; } 35%,100% { left: 130%; } }
     @media (prefers-reduced-motion: reduce) { .ferrari-glow, .ferrari-img-wrap, .ferrari-shine { animation: none !important; } }
+
+    .login-form-exit { animation: form-exit 0.4s ease forwards; }
+    @keyframes form-exit { to { opacity: 0; transform: scale(0.92); } }
+
+    .login-transition-overlay { position: fixed; inset: 0; z-index: 60; overflow: hidden; pointer-events: none; }
+    .drive-car { position: absolute; top: 52%; left: 0; width: 42vw; max-width: 240px; transform: translate(-20vw, -50%); animation: drive-across 1.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; filter: drop-shadow(0 8px 18px rgba(0,0,0,0.55)); }
+    @keyframes drive-across { from { transform: translate(-20vw, -50%); } to { transform: translate(120vw, -50%); } }
+
+    .smoke-puff { position: absolute; top: 52%; width: 15vw; max-width: 70px; height: 15vw; max-height: 70px; border-radius: 9999px; background: radial-gradient(circle, rgba(190,190,190,0.6), rgba(190,190,190,0.15) 60%, transparent 75%); filter: blur(6px); opacity: 0; animation: smoke-out 1s ease-out forwards; }
+    @keyframes smoke-out { 0% { opacity: 0.85; transform: translate(0, -50%) scale(1); } 100% { opacity: 0; transform: translate(-10%, -130%) scale(2.5); } }
+    .smoke-1 { left: -18vw; animation-delay: 0.05s; }
+    .smoke-2 { left: -8vw; animation-delay: 0.2s; }
+    .smoke-3 { left: 4vw; animation-delay: 0.35s; }
+    .smoke-4 { left: 18vw; animation-delay: 0.5s; }
+    .smoke-5 { left: 34vw; animation-delay: 0.65s; }
+    .smoke-6 { left: 52vw; animation-delay: 0.8s; }
+    @media (prefers-reduced-motion: reduce) { .drive-car, .smoke-puff, .login-form-exit { animation: none !important; opacity: 0; } }
   `}</style>
 );
+
+function DriveCarSVG({ className }) {
+  return (
+    <svg viewBox="0 0 200 70" className={className} xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="42" cy="54" rx="15" ry="15" fill="#141414" />
+      <ellipse cx="42" cy="54" rx="6" ry="6" fill="#3a3a3a" />
+      <ellipse cx="158" cy="54" rx="15" ry="15" fill="#141414" />
+      <ellipse cx="158" cy="54" rx="6" ry="6" fill="#3a3a3a" />
+      <path d="M8 46 Q16 20 55 18 L128 18 Q152 20 175 34 L190 40 L190 48 L10 48 Z" fill="#ff2436" />
+      <path d="M65 19 L108 19 L102 33 L72 33 Z" fill="#14100f" />
+      <path d="M8 46 L190 46 L190 50 L8 50 Z" fill="#c0121f" />
+      <rect x="182" y="24" width="6" height="18" rx="1.5" fill="#14100f" />
+      <rect x="172" y="20" width="20" height="4.5" rx="1.5" fill="#14100f" />
+      <circle cx="50" cy="30" r="4" fill="#f3d29a" />
+    </svg>
+  );
+}
 
 function AuroraBackground() {
   return (
@@ -190,7 +224,7 @@ function SectionHead({ icon: Icon, children, right }) {
 }
 
 /* ---------- Login ---------- */
-function Login({ onLogin, error, busy }) {
+function Login({ onLogin, error, busy, transitioning }) {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -210,7 +244,7 @@ function Login({ onLogin, error, busy }) {
 
   return (
     <div className="min-h-full flex items-center justify-center px-6 py-12">
-      <form onSubmit={submit} className="w-full max-w-sm cmd-fade-in">
+      <form onSubmit={submit} className={`w-full max-w-sm cmd-fade-in ${transitioning ? "login-form-exit" : ""}`}>
         <div className="ferrari-hero mb-6">
           <div className="ferrari-glow" />
           <div className="ferrari-img-wrap">
@@ -289,6 +323,18 @@ function Login({ onLogin, error, busy }) {
           <br />У каждого логина — своя отдельная база.
         </p>
       </form>
+
+      {transitioning && (
+        <div className="login-transition-overlay">
+          <div className="smoke-puff smoke-1" />
+          <div className="smoke-puff smoke-2" />
+          <div className="smoke-puff smoke-3" />
+          <div className="smoke-puff smoke-4" />
+          <div className="smoke-puff smoke-5" />
+          <div className="smoke-puff smoke-6" />
+          <DriveCarSVG className="drive-car" />
+        </div>
+      )}
     </div>
   );
 }
@@ -869,6 +915,7 @@ export default function App() {
   const [loginError, setLoginError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const loadedRef = useRef(false);
   const saveTimer = useRef(null);
@@ -907,16 +954,23 @@ export default function App() {
     try {
       const { token, login: confirmedLogin } = await apiLogin(loginValue, password);
       setToken(token);
-      loadedRef.current = false;
       const state = await fetchState();
-      setSubjects(state.subjects || []);
-      setArchive(state.archive || []);
-      setTransactions(state.transactions || []);
-      setUser(confirmedLogin);
-      loadedRef.current = true;
+
+      // Play the drive-off transition before switching to the main screen —
+      // duration must match the .drive-car animation length in FONTS above.
+      setTransitioning(true);
+      setTimeout(() => {
+        loadedRef.current = false;
+        setSubjects(state.subjects || []);
+        setArchive(state.archive || []);
+        setTransactions(state.transactions || []);
+        setUser(confirmedLogin);
+        loadedRef.current = true;
+        setTransitioning(false);
+        setBusy(false);
+      }, 1300);
     } catch (err) {
       setLoginError(err.message || "Не удалось войти");
-    } finally {
       setBusy(false);
     }
   }
@@ -957,7 +1011,7 @@ export default function App() {
         {FONTS}
         <AuroraBackground />
         <div className="relative z-10">
-          <Login onLogin={handleLogin} error={loginError} busy={busy} />
+          <Login onLogin={handleLogin} error={loginError} busy={busy} transitioning={transitioning} />
         </div>
       </div>
     );
