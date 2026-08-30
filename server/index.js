@@ -1,10 +1,11 @@
 const express = require("express");
 const cors = require("cors");
-const crypto = require("crypto");
+const path = require("path");
+const fs = require("fs");
 const bcrypt = require("bcryptjs");
-require("dotenv").config();
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
-const { mainDb, getUserDb } = require("./db");
+const { withClient, withTransaction } = require("./db");
 const { signToken, requireAuth } = require("./auth");
 
 const app = express();
@@ -25,98 +26,122 @@ app.post("/api/auth/login", async (req, res) => {
     return res.status(400).json({ error: "Введите логин и пароль" });
   }
 
-  const existing = mainDb.prepare("SELECT * FROM users WHERE login = ?").get(login);
+  try {
+    const existing = await withClient((client) =>
+      client.query("SELECT * FROM users WHERE login = $1", [login]).then((r) => r.rows[0])
+    );
 
-  if (existing) {
-    const ok = await bcrypt.compare(password, existing.password_hash);
-    if (!ok) return res.status(401).json({ error: "Неверный пароль для этого логина" });
-    getUserDb(existing.id); // ensure the user's isolated database file exists
-    return res.json({ token: signToken(existing), login: existing.login, isNew: false });
+    if (existing) {
+      const ok = await bcrypt.compare(password, existing.password_hash);
+      if (!ok) return res.status(401).json({ error: "Неверный пароль для этого логина" });
+      return res.json({ token: signToken(existing), login: existing.login, isNew: false });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await withClient((client) =>
+      client
+        .query(
+          "INSERT INTO users (login, password_hash) VALUES ($1, $2) RETURNING id, login",
+          [login, passwordHash]
+        )
+        .then((r) => r.rows[0])
+    );
+    return res.json({ token: signToken(user), login: user.login, isNew: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Ошибка сервера при входе" });
   }
-
-  const id = crypto.randomUUID();
-  const passwordHash = await bcrypt.hash(password, 12);
-  mainDb
-    .prepare("INSERT INTO users (id, login, password_hash, created_at) VALUES (?, ?, ?, ?)")
-    .run(id, login, passwordHash, Date.now());
-  getUserDb(id); // create this login's own isolated database file
-  const user = { id, login };
-  return res.json({ token: signToken(user), login, isNew: true });
 });
 
-/* ---------- State: full read/write of this login's isolated database ---------- */
-app.get("/api/state", requireAuth, (req, res) => {
-  const db = getUserDb(req.userId);
+/* ---------- State: full read/write of this login's data, always scoped by user_id ---------- */
+app.get("/api/state", requireAuth, async (req, res) => {
+  try {
+    const state = await withClient(async (client) => {
+      const subjectRows = (await client.query("SELECT * FROM subjects WHERE user_id = $1 ORDER BY position ASC", [req.userId])).rows;
+      const accountRows = (await client.query("SELECT * FROM accounts WHERE user_id = $1 ORDER BY position ASC", [req.userId])).rows;
+      const transactionRows = (await client.query("SELECT * FROM transactions WHERE user_id = $1 ORDER BY position ASC", [req.userId])).rows;
+      const archiveRows = (await client.query("SELECT * FROM archive WHERE user_id = $1 ORDER BY position ASC", [req.userId])).rows;
 
-  const subjectRows = db.prepare("SELECT * FROM subjects ORDER BY position ASC").all();
-  const accountRows = db.prepare("SELECT * FROM accounts ORDER BY position ASC").all();
-  const transactionRows = db.prepare("SELECT * FROM transactions ORDER BY position ASC").all();
-  const archiveRows = db.prepare("SELECT * FROM archive ORDER BY position ASC").all();
+      const subjects = subjectRows.map((s) => ({
+        id: s.id,
+        name: s.name,
+        phone: s.phone,
+        note: s.note,
+        accounts: accountRows
+          .filter((a) => a.subject_id === s.id)
+          .map((a) => ({
+            id: a.id,
+            bank: a.bank,
+            balance: a.balance,
+            cardId: a.card_id,
+            phone: a.phone,
+            status: a.status,
+          })),
+      }));
 
-  const subjects = subjectRows.map((s) => ({
-    id: s.id,
-    name: s.name,
-    phone: s.phone,
-    note: s.note,
-    accounts: accountRows
-      .filter((a) => a.subject_id === s.id)
-      .map((a) => ({
+      const transactions = transactionRows.map((t) => ({ id: t.id, label: t.label, delta: t.delta, time: t.time }));
+      const archive = archiveRows.map((a) => ({
         id: a.id,
-        bank: a.bank,
-        balance: a.balance,
-        cardId: a.card_id,
-        phone: a.phone,
-        status: a.status,
-      })),
-  }));
+        amount: a.amount,
+        buy: a.buy,
+        sell: a.sell,
+        result: a.result,
+        time: a.time,
+      }));
 
-  const transactions = transactionRows.map((t) => ({ id: t.id, label: t.label, delta: t.delta, time: t.time }));
-  const archive = archiveRows.map((a) => ({
-    id: a.id,
-    amount: a.amount,
-    buy: a.buy,
-    sell: a.sell,
-    result: a.result,
-    time: a.time,
-  }));
-
-  res.json({ subjects, transactions, archive });
-});
-
-app.put("/api/state", requireAuth, (req, res) => {
-  const { subjects = [], transactions = [], archive = [] } = req.body || {};
-  const db = getUserDb(req.userId);
-
-  const save = db.transaction(() => {
-    db.prepare("DELETE FROM accounts").run();
-    db.prepare("DELETE FROM subjects").run();
-    db.prepare("DELETE FROM transactions").run();
-    db.prepare("DELETE FROM archive").run();
-
-    const insertSubject = db.prepare(
-      "INSERT INTO subjects (id, name, phone, note, position) VALUES (?, ?, ?, ?, ?)"
-    );
-    const insertAccount = db.prepare(
-      "INSERT INTO accounts (id, subject_id, bank, balance, card_id, phone, status, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    );
-    subjects.forEach((s, si) => {
-      insertSubject.run(s.id, s.name, s.phone || "", s.note || "", si);
-      (s.accounts || []).forEach((a, ai) => {
-        insertAccount.run(a.id, s.id, a.bank, Number(a.balance) || 0, a.cardId || "", a.phone || "", a.status || "РАБОЧИЙ", ai);
-      });
+      return { subjects, transactions, archive };
     });
 
-    const insertTx = db.prepare("INSERT INTO transactions (id, label, delta, time, position) VALUES (?, ?, ?, ?, ?)");
-    transactions.forEach((t, i) => insertTx.run(t.id, t.label, Number(t.delta) || 0, t.time, i));
+    res.json(state);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Не удалось загрузить данные" });
+  }
+});
 
-    const insertArchive = db.prepare(
-      "INSERT INTO archive (id, amount, buy, sell, result, time, position) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    );
-    archive.forEach((a, i) => insertArchive.run(a.id, a.amount, a.buy, a.sell, a.result, a.time, i));
-  });
+app.put("/api/state", requireAuth, async (req, res) => {
+  const { subjects = [], transactions = [], archive = [] } = req.body || {};
 
   try {
-    save();
+    await withTransaction(async (client) => {
+      await client.query("DELETE FROM accounts WHERE user_id = $1", [req.userId]);
+      await client.query("DELETE FROM subjects WHERE user_id = $1", [req.userId]);
+      await client.query("DELETE FROM transactions WHERE user_id = $1", [req.userId]);
+      await client.query("DELETE FROM archive WHERE user_id = $1", [req.userId]);
+
+      for (let si = 0; si < subjects.length; si++) {
+        const s = subjects[si];
+        await client.query(
+          "INSERT INTO subjects (id, user_id, name, phone, note, position) VALUES ($1, $2, $3, $4, $5, $6)",
+          [s.id, req.userId, s.name, s.phone || "", s.note || "", si]
+        );
+        const accounts = s.accounts || [];
+        for (let ai = 0; ai < accounts.length; ai++) {
+          const a = accounts[ai];
+          await client.query(
+            "INSERT INTO accounts (id, user_id, subject_id, bank, balance, card_id, phone, status, position) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            [a.id, req.userId, s.id, a.bank, Number(a.balance) || 0, a.cardId || "", a.phone || "", a.status || "РАБОЧИЙ", ai]
+          );
+        }
+      }
+
+      for (let i = 0; i < transactions.length; i++) {
+        const t = transactions[i];
+        await client.query(
+          "INSERT INTO transactions (id, user_id, label, delta, time, position) VALUES ($1, $2, $3, $4, $5, $6)",
+          [t.id, req.userId, t.label, Number(t.delta) || 0, t.time, i]
+        );
+      }
+
+      for (let i = 0; i < archive.length; i++) {
+        const a = archive[i];
+        await client.query(
+          "INSERT INTO archive (id, user_id, amount, buy, sell, result, time, position) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+          [a.id, req.userId, a.amount, a.buy, a.sell, a.result, a.time, i]
+        );
+      }
+    });
+
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -125,6 +150,15 @@ app.put("/api/state", requireAuth, (req, res) => {
 });
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// In production, serve the built React app from the same service as the API.
+const clientDist = path.join(__dirname, "..", "client", "dist");
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get(/^(?!\/api).*/, (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Finance tracker API listening on port ${PORT}`);
