@@ -4,3 +4,21 @@ html, body, #root {
   height: 100%;
   margin: 0;
 }
+
+html {
+  height: 100dvh;
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pan-y;
+}
+
+#root {
+  height: 100dvh;
+}

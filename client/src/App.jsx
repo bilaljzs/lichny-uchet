@@ -7,27 +7,28 @@ import {
 import { login as apiLogin, fetchState, saveState, getToken, setToken, clearToken } from "./api";
 
 /* ============================================================
-   DESIGN TOKENS — v4
-   Full repaint per direct request: away from black/red entirely.
-   "Vault at night" register — deep ink-emerald surfaces, glass
-   panels that let a slow-drifting aurora glow show through behind
-   them, gold for wealth/primary actions, mint-emerald for growth,
-   soft coral reserved only for negative/alert states. The aurora
-   is the signature: three blurred color fields drifting slowly
-   behind glass cards, so the whole app feels alive while scrolling
-   rather than a flat, static screen.
-   v1 / v2 / v3 are kept as checkpoints if we want to roll back.
+   DESIGN TOKENS — v5 "Scuderia"
+   Elite/racing repaint: near-black carbon surfaces, Ferrari red as
+   the primary brand/interactive accent (borders, buttons, active
+   states), gold reserved specifically for money figures (₽ values),
+   mint/coral kept for financial gain/loss. The aurora glow behind
+   the glass panels is recolored to red/crimson/chrome, and the
+   login screen carries an animated hero shot of the car.
    ============================================================ */
 
 const C = {
-  bg: "#060907",
-  surfaceGlass: "rgba(20,26,24,0.42)",
-  surfaceGlassStrong: "rgba(16,21,20,0.58)",
-  border: "rgba(255,255,255,0.10)",
+  bg: "#0a0504",
+  surfaceGlass: "rgba(22,12,11,0.44)",
+  surfaceGlassStrong: "rgba(16,9,8,0.62)",
+  border: "rgba(255,255,255,0.09)",
   borderStrong: "rgba(255,255,255,0.20)",
+  red: "#ff2436",
+  redSoft: "#ff5c52",
+  redDim: "rgba(255,36,54,0.16)",
   gold: "#e6b869",
   goldSoft: "#f3d29a",
   goldDim: "rgba(230,184,105,0.14)",
+  chrome: "#d8d9dd",
   mint: "#39d9ab",
   mintDim: "rgba(57,217,171,0.14)",
   coral: "#ff7a6b",
@@ -48,15 +49,15 @@ const FONTS = (
 
     .aurora-wrap { position: fixed; inset: 0; overflow: hidden; z-index: 0; animation: hue-drift 50s linear infinite; }
     .aurora-blob { position: absolute; border-radius: 9999px; filter: blur(50px); opacity: 0.85; mix-blend-mode: screen; will-change: transform; }
-    .aurora-a { width: 68vw; height: 68vw; background: radial-gradient(circle, ${C.mint}, transparent 68%); top: -18vw; left: -14vw; animation: drift-a 16s ease-in-out infinite; }
-    .aurora-b { width: 62vw; height: 62vw; background: radial-gradient(circle, ${C.gold}, transparent 68%); bottom: -20vw; right: -16vw; animation: drift-b 19s ease-in-out infinite; }
-    .aurora-c { width: 52vw; height: 52vw; background: radial-gradient(circle, #3d8fc4, transparent 68%); top: 28vh; right: -12vw; animation: drift-c 14s ease-in-out infinite; }
-    .aurora-d { width: 34vw; height: 34vw; background: radial-gradient(circle, #ffffff, transparent 72%); top: 8vh; left: 20vw; opacity: 0.18; animation: drift-d 11s ease-in-out infinite; }
+    .aurora-a { width: 68vw; height: 68vw; background: radial-gradient(circle, ${C.red}, transparent 68%); top: -18vw; left: -14vw; animation: drift-a 16s ease-in-out infinite; opacity: 0.55; }
+    .aurora-b { width: 62vw; height: 62vw; background: radial-gradient(circle, #7a0d14, transparent 68%); bottom: -20vw; right: -16vw; animation: drift-b 19s ease-in-out infinite; }
+    .aurora-c { width: 52vw; height: 52vw; background: radial-gradient(circle, ${C.chrome}, transparent 68%); top: 28vh; right: -12vw; animation: drift-c 14s ease-in-out infinite; opacity: 0.14; }
+    .aurora-d { width: 34vw; height: 34vw; background: radial-gradient(circle, ${C.goldSoft}, transparent 72%); top: 8vh; left: 20vw; opacity: 0.12; animation: drift-d 11s ease-in-out infinite; }
     @keyframes drift-a { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(16vw,18vh) scale(1.22); } }
     @keyframes drift-b { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-15vw,-14vh) scale(1.18); } }
     @keyframes drift-c { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-14vw,16vh) scale(0.86); } }
     @keyframes drift-d { 0%,100% { transform: translate(0,0); } 50% { transform: translate(10vw,12vh); } }
-    @keyframes hue-drift { 0% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(22deg); } 100% { filter: hue-rotate(0deg); } }
+    @keyframes hue-drift { 0% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(10deg); } 100% { filter: hue-rotate(0deg); } }
     @media (prefers-reduced-motion: reduce) { .aurora-blob, .aurora-wrap { animation: none !important; } }
 
     .glass { background: ${C.surfaceGlass}; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
@@ -67,6 +68,15 @@ const FONTS = (
     input::placeholder, textarea::placeholder { color: rgba(246,244,238,0.28); }
     .cmd-fade-in { animation: cmd-fade-in 0.3s cubic-bezier(0.16,1,0.3,1) both; }
     @keyframes cmd-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .ferrari-hero { position: relative; width: 100%; max-width: 340px; margin: 0 auto; }
+    .ferrari-glow { position: absolute; inset: -20% -10% auto -10%; height: 140%; border-radius: 9999px; background: radial-gradient(ellipse at center, rgba(255,36,54,0.55), rgba(255,36,54,0.08) 55%, transparent 75%); filter: blur(18px); animation: ferrari-glow-pulse 3.2s ease-in-out infinite; }
+    @keyframes ferrari-glow-pulse { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+    .ferrari-img-wrap { position: relative; overflow: hidden; animation: ferrari-float 5s ease-in-out infinite; }
+    @keyframes ferrari-float { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(-0.6deg); } }
+    .ferrari-shine { position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(115deg, transparent, rgba(255,255,255,0.55), transparent); transform: skewX(-18deg); animation: ferrari-shine-sweep 3.6s ease-in-out infinite; animation-delay: 1s; mix-blend-mode: overlay; }
+    @keyframes ferrari-shine-sweep { 0% { left: -60%; } 35%,100% { left: 130%; } }
+    @media (prefers-reduced-motion: reduce) { .ferrari-glow, .ferrari-img-wrap, .ferrari-shine { animation: none !important; } }
   `}</style>
 );
 
@@ -133,7 +143,7 @@ function Panel({ children, className = "", tone = "default", onClick, as: As = "
     coral: C.coralDim,
     mint: C.mintDim,
   }[tone];
-  const markColor = { default: C.gold, gold: C.goldSoft, coral: C.coral, mint: C.mint }[tone];
+  const markColor = { default: C.red, gold: C.goldSoft, coral: C.coral, mint: C.mint }[tone];
 
   return (
     <As
@@ -157,7 +167,7 @@ function Panel({ children, className = "", tone = "default", onClick, as: As = "
 function Eyebrow({ children, dot = true }) {
   return (
     <div className="flex items-center gap-2">
-      {dot && <span className="w-1.5 h-1.5 rounded-full" style={{ background: C.gold, boxShadow: `0 0 8px ${C.gold}` }} />}
+      {dot && <span className="w-1.5 h-1.5 rounded-full" style={{ background: C.red, boxShadow: `0 0 8px ${C.red}` }} />}
       <span className="cmd-display text-[10.5px] font-semibold tracking-[0.22em] uppercase" style={{ color: C.dim }}>
         {children}
       </span>
@@ -169,7 +179,7 @@ function SectionHead({ icon: Icon, children, right }) {
   return (
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2">
-        {Icon && <Icon size={15} color={C.gold} strokeWidth={2.25} />}
+        {Icon && <Icon size={15} color={C.red} strokeWidth={2.25} />}
         <span className="cmd-display text-[13px] font-semibold tracking-[0.14em] uppercase" style={{ color: C.text }}>
           {children}
         </span>
@@ -199,15 +209,23 @@ function Login({ onLogin, error, busy }) {
   const shownError = localError || error;
 
   return (
-    <div className="min-h-full flex items-center justify-center px-6 py-16">
+    <div className="min-h-full flex items-center justify-center px-6 py-12">
       <form onSubmit={submit} className="w-full max-w-sm cmd-fade-in">
-        <div className="flex items-center gap-2 mb-2">
-          <Radio size={13} color={C.gold} className="cmd-pulse" />
+        <div className="ferrari-hero mb-6">
+          <div className="ferrari-glow" />
+          <div className="ferrari-img-wrap">
+            <img src="/ferrari.png" alt="" className="relative w-full select-none pointer-events-none" draggable="false" />
+            <div className="ferrari-shine" />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Radio size={13} color={C.red} className="cmd-pulse" />
           <span className="cmd-display text-[10.5px] font-semibold tracking-[0.25em] uppercase" style={{ color: C.dim }}>
             Система доступа
           </span>
         </div>
-        <h1 className="cmd-display text-[34px] leading-none font-bold text-white tracking-tight mb-9">
+        <h1 className="cmd-display text-[34px] leading-none font-bold text-white tracking-tight mb-9 text-center">
           Авторизация
         </h1>
 
@@ -218,9 +236,9 @@ function Login({ onLogin, error, busy }) {
           value={login}
           onChange={(e) => setLogin(e.target.value)}
           autoCapitalize="none"
-          className="cmd-mono w-full bg-transparent border-b outline-none text-white px-1 py-3 mb-6 text-[15px] tracking-wide transition-colors"
+          className="cmd-mono w-full bg-transparent border-b outline-none text-white px-1 py-3 mb-6 text-[16px] tracking-wide transition-colors"
           style={{ borderColor: C.border }}
-          onFocus={(e) => (e.target.style.borderColor = C.gold)}
+          onFocus={(e) => (e.target.style.borderColor = C.red)}
           onBlur={(e) => (e.target.style.borderColor = C.border)}
           placeholder="имя.пользователя"
         />
@@ -233,9 +251,9 @@ function Login({ onLogin, error, busy }) {
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="cmd-mono w-full bg-transparent border-b outline-none text-white px-1 py-3 pr-10 text-[15px] tracking-wide transition-colors"
+            className="cmd-mono w-full bg-transparent border-b outline-none text-white px-1 py-3 pr-10 text-[16px] tracking-wide transition-colors"
             style={{ borderColor: C.border }}
-            onFocus={(e) => (e.target.style.borderColor = C.gold)}
+            onFocus={(e) => (e.target.style.borderColor = C.red)}
             onBlur={(e) => (e.target.style.borderColor = C.border)}
             placeholder="••••••••"
           />
@@ -259,8 +277,8 @@ function Login({ onLogin, error, busy }) {
         <button
           type="submit"
           disabled={busy}
-          className="cmd-display w-full mt-8 py-4 rounded-xl font-semibold text-[13px] tracking-[0.18em] uppercase text-black transition active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-          style={{ background: C.gold, boxShadow: `0 8px 28px -6px ${C.gold}77` }}
+          className="cmd-display w-full mt-8 py-4 rounded-xl font-semibold text-[13px] tracking-[0.18em] uppercase text-white transition active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+          style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 8px 28px -6px ${C.red}88` }}
         >
           {busy && <Loader2 size={15} className="animate-spin" />}
           Войти
@@ -283,14 +301,14 @@ function Sheet({ open, onClose, title, children }) {
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative w-full max-w-md rounded-t-2xl max-h-[86vh] overflow-y-auto cmd-fade-in"
-        style={{ background: "rgba(9,13,11,0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${C.borderStrong}` }}
+        style={{ background: "rgba(10,7,6,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${C.borderStrong}` }}
       >
         <div className="flex justify-center pt-3">
           <div className="w-9 h-1 rounded-full" style={{ background: C.border }} />
         </div>
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: `linear-gradient(135deg, ${C.goldSoft}, ${C.gold})`, boxShadow: `0 10px 24px -10px ${C.gold}88` }} />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 10px 24px -10px ${C.red}88` }} />
             <span className="cmd-display text-[12px] font-semibold tracking-[0.18em] uppercase" style={{ color: C.text }}>
               {title}
             </span>
@@ -321,9 +339,9 @@ function TextInput(props) {
   return (
     <input
       {...props}
-      className="cmd-mono w-full bg-black/30 border outline-none text-white px-4 py-3 text-[15px] tracking-wide transition-colors rounded-xl"
+      className="cmd-mono w-full bg-black/30 border outline-none text-white px-4 py-3 text-[16px] tracking-wide transition-colors rounded-xl"
       style={{ borderColor: C.border }}
-      onFocus={(e) => (e.target.style.borderColor = C.gold)}
+      onFocus={(e) => (e.target.style.borderColor = C.red)}
       onBlur={(e) => (e.target.style.borderColor = C.border)}
     />
   );
@@ -384,7 +402,7 @@ function Overview({ subjects, transactions, onSearch, search }) {
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Поиск по базе данных..."
-          className="cmd-mono bg-transparent outline-none text-white text-[14px] w-full"
+          className="cmd-mono bg-transparent outline-none text-white text-[16px] w-full"
         />
       </Panel>
 
@@ -443,7 +461,7 @@ function People({ subjects, setSubjects, addTransaction }) {
           <button
             onClick={() => setAddOpen(true)}
             className="cmd-display flex items-center gap-1 rounded-full text-[10.5px] font-semibold tracking-[0.14em] uppercase px-3.5 py-2"
-            style={{ color: C.gold, border: `1px solid rgba(225,29,72,0.4)` }}
+            style={{ color: C.red, border: `1px solid ${C.red}66` }}
           >
             <Plus size={13} /> Добавить
           </button>
@@ -455,7 +473,7 @@ function People({ subjects, setSubjects, addTransaction }) {
       <div className="cmd-display text-[10.5px] font-semibold tracking-[0.2em] uppercase mb-1" style={{ color: C.faint }}>
         База профилей
       </div>
-      <div className="cmd-mono text-3xl font-bold mb-6" style={{ color: C.gold, textShadow: `0 0 16px ${C.gold}55` }}>
+      <div className="cmd-mono text-3xl font-bold mb-6" style={{ color: C.red, textShadow: `0 0 16px ${C.red}55` }}>
         {subjects.length}
       </div>
 
@@ -498,7 +516,7 @@ function People({ subjects, setSubjects, addTransaction }) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={3}
-            className="cmd-mono w-full bg-black/30 border outline-none text-white px-4 py-3 text-[14px] rounded-xl"
+            className="cmd-mono w-full bg-black/30 border outline-none text-white px-4 py-3 text-[16px] rounded-xl"
             style={{ borderColor: C.border }}
           />
         </Field>
@@ -506,7 +524,7 @@ function People({ subjects, setSubjects, addTransaction }) {
           <button onClick={() => setAddOpen(false)} className="cmd-display py-3.5 rounded-xl border text-[12px] font-semibold tracking-[0.14em] uppercase" style={{ borderColor: C.border, color: C.dim }}>
             Отмена
           </button>
-          <button onClick={registerSubject} className="cmd-display py-3.5 rounded-xl font-semibold text-[12px] tracking-[0.14em] uppercase text-black" style={{ background: `linear-gradient(135deg, ${C.goldSoft}, ${C.gold})`, boxShadow: `0 10px 24px -10px ${C.gold}88` }}>
+          <button onClick={registerSubject} className="cmd-display py-3.5 rounded-xl font-semibold text-[12px] tracking-[0.14em] uppercase text-white" style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 10px 24px -10px ${C.red}88` }}>
             Зарегистрировать
           </button>
         </div>
@@ -564,7 +582,7 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
   const capital = subject.accounts.reduce((a, acc) => a + acc.balance, 0);
 
   return createPortal(
-    <div className="fixed inset-0 z-40 overflow-y-auto" style={{ background: "rgba(6,9,7,0.88)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}>
+    <div className="fixed inset-0 z-40 overflow-y-auto" style={{ background: "rgba(9,5,4,0.9)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}>
       <div className="flex items-center px-5 pt-6 pb-4" style={{ borderBottom: `1px solid ${C.border}` }}>
         <button onClick={onClose} className="cmd-display text-[13px] font-medium" style={{ color: C.dim }}>← Назад</button>
       </div>
@@ -572,8 +590,8 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
       <div className="px-5 pt-6">
         <h2 className="cmd-display text-[30px] font-bold text-white mb-1.5">{subject.name}</h2>
         <div className="flex items-center gap-2 mb-7">
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: `linear-gradient(135deg, ${C.goldSoft}, ${C.gold})`, boxShadow: `0 10px 24px -10px ${C.gold}88` }} />
-          <span className="cmd-mono text-[13px] tracking-wide" style={{ color: C.gold }}>{subject.phone || "нет телефона"}</span>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 10px 24px -10px ${C.red}88` }} />
+          <span className="cmd-mono text-[13px] tracking-wide" style={{ color: C.red }}>{subject.phone || "нет телефона"}</span>
         </div>
 
         <div className="cmd-display text-[10.5px] font-semibold tracking-[0.2em] uppercase mb-1" style={{ color: C.faint }}>
@@ -587,7 +605,7 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
         <SectionHead
           icon={CreditCard}
           right={
-            <button onClick={openNew} className="cmd-display flex items-center gap-1 rounded-full text-[10.5px] font-semibold tracking-[0.14em] uppercase px-3.5 py-2" style={{ color: C.gold, border: `1px solid rgba(225,29,72,0.4)` }}>
+            <button onClick={openNew} className="cmd-display flex items-center gap-1 rounded-full text-[10.5px] font-semibold tracking-[0.14em] uppercase px-3.5 py-2" style={{ color: C.red, border: `1px solid ${C.red}66` }}>
               <Plus size={13} /> Новый счёт
             </button>
           }
@@ -666,7 +684,7 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
           <button onClick={() => setAddAccountOpen(false)} className="cmd-display py-3.5 rounded-xl border text-[12px] font-semibold tracking-[0.14em] uppercase" style={{ borderColor: C.border, color: C.dim }}>
             Отмена
           </button>
-          <button onClick={saveAccount} className="cmd-display py-3.5 rounded-xl font-semibold text-[12px] tracking-[0.14em] uppercase text-black" style={{ background: `linear-gradient(135deg, ${C.goldSoft}, ${C.gold})`, boxShadow: `0 10px 24px -10px ${C.gold}88` }}>
+          <button onClick={saveAccount} className="cmd-display py-3.5 rounded-xl font-semibold text-[12px] tracking-[0.14em] uppercase text-white" style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 10px 24px -10px ${C.red}88` }}>
             Сохранить счёт
           </button>
         </div>
@@ -725,8 +743,8 @@ function CalcTab({ archive, setArchive }) {
       <button
         onClick={commit}
         disabled={!amt || !b || !s}
-        className="cmd-display w-full py-4 rounded-xl font-semibold tracking-[0.14em] uppercase text-black mb-10 disabled:opacity-30 transition active:scale-[0.98]"
-        style={{ background: `linear-gradient(135deg, ${C.goldSoft}, ${C.gold})`, boxShadow: `0 10px 24px -10px ${C.gold}88` }}
+        className="cmd-display w-full py-4 rounded-xl font-semibold tracking-[0.14em] uppercase text-white mb-10 disabled:opacity-30 transition active:scale-[0.98]"
+        style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 10px 24px -10px ${C.red}88` }}
       >
         Зафиксировать в архив
       </button>
@@ -884,7 +902,7 @@ export default function App() {
       <div className="cmd-root w-full h-full relative flex items-center justify-center">
         {FONTS}
         <AuroraBackground />
-        <Loader2 size={22} className="animate-spin relative z-10" color={C.gold} />
+        <Loader2 size={22} className="animate-spin relative z-10" color={C.red} />
       </div>
     );
   }
@@ -951,10 +969,10 @@ export default function App() {
             return (
               <button key={n.id} onClick={() => setTab(n.id)} className="flex flex-col items-center justify-center gap-1.5 py-3 relative">
                 {isActive && (
-                  <span className="absolute top-1.5 w-1 h-1 rounded-full" style={{ background: C.gold, boxShadow: `0 0 6px ${C.gold}` }} />
+                  <span className="absolute top-1.5 w-1 h-1 rounded-full" style={{ background: C.red, boxShadow: `0 0 6px ${C.red}` }} />
                 )}
-                <Icon size={19} color={isActive ? C.gold : C.faint} strokeWidth={2.25} />
-                <span className="cmd-display text-[9.5px] font-semibold tracking-[0.1em] uppercase" style={{ color: isActive ? C.gold : C.faint }}>
+                <Icon size={19} color={isActive ? C.red : C.faint} strokeWidth={2.25} />
+                <span className="cmd-display text-[9.5px] font-semibold tracking-[0.1em] uppercase" style={{ color: isActive ? C.red : C.faint }}>
                   {n.label}
                 </span>
               </button>
