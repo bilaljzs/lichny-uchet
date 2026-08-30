@@ -150,8 +150,8 @@ app.put("/api/state", requireAuth, async (req, res) => {
 });
 
 /* ---------- Purchase rate range: USDT/RUB from Rapira, marked up by fixed coefficients ---------- */
-const LOW_COEF = 1.009;
-const HIGH_COEF = 1.023;
+const LOW_COEF = 1.006;
+const HIGH_COEF = 1.008;
 const RAPIRA_RATES_URL = "https://api.rapira.net/open/market/rates";
 
 function normalizeSymbol(s) {
