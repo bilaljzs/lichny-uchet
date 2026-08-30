@@ -4,7 +4,7 @@ import {
   LayoutGrid, Users, Calculator, BarChart3, Plus, LogOut, CreditCard,
   ChevronRight, X, Pencil, Trash2, Search, Eye, EyeOff, Loader2, Radio,
 } from "lucide-react";
-import { login as apiLogin, fetchState, saveState, getToken, setToken, clearToken } from "./api";
+import { login as apiLogin, fetchState, saveState, fetchRate, getToken, setToken, clearToken } from "./api";
 
 /* ============================================================
    DESIGN TOKENS — v5 "Scuderia"
@@ -699,6 +699,30 @@ function CalcTab({ archive, setArchive }) {
   const [amount, setAmount] = useState("");
   const [buy, setBuy] = useState("");
   const [sell, setSell] = useState("");
+  const [rate, setRate] = useState(null);
+  const [rateFailed, setRateFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    function loadRate() {
+      fetchRate()
+        .then((data) => {
+          if (!cancelled) {
+            setRate(data.localRate);
+            setRateFailed(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setRateFailed(true);
+        });
+    }
+    loadRate();
+    const interval = setInterval(loadRate, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   const amt = Number(amount) || 0;
   const b = Number(buy) || 0;
@@ -715,6 +739,26 @@ function CalcTab({ archive, setArchive }) {
   return (
     <div className="px-5 pt-6">
       <SectionHead icon={Calculator}>Вычислительный модуль</SectionHead>
+
+      <Panel className="mb-5" tone="gold">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full cmd-pulse" style={{ background: C.mint, boxShadow: `0 0 6px ${C.mint}` }} />
+            <span className="cmd-display text-[10.5px] font-semibold tracking-[0.18em] uppercase" style={{ color: C.faint }}>
+              Курс закупа
+            </span>
+          </div>
+          {rate != null ? (
+            <span className="cmd-mono font-bold text-lg" style={{ color: C.gold }}>
+              {rate.toFixed(2)} ₽
+            </span>
+          ) : (
+            <span className="cmd-mono text-[12px]" style={{ color: rateFailed ? C.coral : C.faint }}>
+              {rateFailed ? "недоступен" : "загрузка…"}
+            </span>
+          )}
+        </div>
+      </Panel>
 
       <Field label="Исходный объём (₽)">
         <TextInput value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" />

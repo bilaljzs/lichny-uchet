@@ -44,3 +44,7 @@ export function fetchState() {
 export function saveState(state) {
   return request("/state", { method: "PUT", body: JSON.stringify(state) });
 }
+
+export function fetchRate() {
+  return request("/rate", { method: "GET" });
+}

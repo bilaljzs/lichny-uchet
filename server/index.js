@@ -149,6 +149,39 @@ app.put("/api/state", requireAuth, async (req, res) => {
   }
 });
 
+/* ---------- Purchase rate: USDT/RUB from Rapira, marked up by a fixed coefficient ---------- */
+const RATE_COEFFICIENT = 1.0205;
+const RAPIRA_RATES_URL = "https://api.rapira.net/open/market/rates";
+
+function normalizeSymbol(s) {
+  return String(s || "").toUpperCase().replace(/[^A-Z]/g, "");
+}
+
+app.get("/api/rate", requireAuth, async (_req, res) => {
+  try {
+    const upstream = await fetch(RAPIRA_RATES_URL);
+    if (!upstream.ok) throw new Error(`Rapira responded with ${upstream.status}`);
+    const payload = await upstream.json();
+    const rows = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.data)
+      ? payload.data
+      : Object.values(payload || {});
+
+    const entry = rows.find((r) => normalizeSymbol(r?.symbol ?? r?.pair ?? r?.name) === "USDTRUB");
+    if (!entry) throw new Error("USDT/RUB pair not found in Rapira response");
+
+    const rapiraRate = Number(entry.close);
+    if (!Number.isFinite(rapiraRate)) throw new Error("Rapira close price is not a number");
+
+    const localRate = rapiraRate * RATE_COEFFICIENT;
+    res.json({ rapiraRate, coefficient: RATE_COEFFICIENT, localRate });
+  } catch (err) {
+    console.error("Failed to fetch purchase rate:", err);
+    res.status(502).json({ error: "Не удалось получить курс" });
+  }
+});
+
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 // In production, serve the built React app from the same service as the API.
