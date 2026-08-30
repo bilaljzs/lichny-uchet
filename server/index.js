@@ -149,12 +149,17 @@ app.put("/api/state", requireAuth, async (req, res) => {
   }
 });
 
-/* ---------- Purchase rate: USDT/RUB from Rapira, marked up by a fixed coefficient ---------- */
-const RATE_COEFFICIENT = 1.0205;
+/* ---------- Purchase rate range: USDT/RUB from Rapira, marked up by fixed coefficients ---------- */
+const LOW_COEF = 1.009;
+const HIGH_COEF = 1.023;
 const RAPIRA_RATES_URL = "https://api.rapira.net/open/market/rates";
 
 function normalizeSymbol(s) {
   return String(s || "").toUpperCase().replace(/[^A-Z]/g, "");
+}
+
+function roundTo1(n) {
+  return Math.round(n * 10) / 10;
 }
 
 app.get("/api/rate", requireAuth, async (_req, res) => {
@@ -174,8 +179,9 @@ app.get("/api/rate", requireAuth, async (_req, res) => {
     const rapiraRate = Number(entry.close);
     if (!Number.isFinite(rapiraRate)) throw new Error("Rapira close price is not a number");
 
-    const localRate = rapiraRate * RATE_COEFFICIENT;
-    res.json({ rapiraRate, coefficient: RATE_COEFFICIENT, localRate });
+    const localLow = roundTo1(rapiraRate * LOW_COEF);
+    const localHigh = roundTo1(rapiraRate * HIGH_COEF);
+    res.json({ rapiraRate, localLow, localHigh });
   } catch (err) {
     console.error("Failed to fetch purchase rate:", err);
     res.status(502).json({ error: "Не удалось получить курс" });

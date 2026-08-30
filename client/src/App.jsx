@@ -418,6 +418,7 @@ function Stat({ icon: Icon, label, value, suffix, signed }) {
 function Overview({ subjects, transactions, onSearch, search }) {
   const totalCapital = subjects.reduce((s, sub) => s + sub.accounts.reduce((a, acc) => a + acc.balance, 0), 0);
   const accountCount = subjects.reduce((s, sub) => s + sub.accounts.length, 0);
+  const { rapiraRate, localLow, localHigh, error: rateFailed } = useRate();
 
   return (
     <div className="px-5 pt-6">
@@ -442,7 +443,7 @@ function Overview({ subjects, transactions, onSearch, search }) {
         <Stat icon={CreditCard} label="Счета" value={accountCount} />
       </div>
 
-      <Panel className="flex items-center gap-3 mb-8">
+      <Panel className="flex items-center gap-3 mb-4">
         <Search size={16} style={{ color: C.faint }} />
         <input
           value={search}
@@ -450,6 +451,38 @@ function Overview({ subjects, transactions, onSearch, search }) {
           placeholder="Поиск по базе данных..."
           className="cmd-mono bg-transparent outline-none text-white text-[16px] w-full"
         />
+      </Panel>
+
+      <Panel className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 size={13} color={C.red} strokeWidth={2.25} />
+            <span className="cmd-display text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: C.faint }}>
+              Курс Rapira
+            </span>
+          </div>
+          {rapiraRate != null ? (
+            <span className="cmd-mono font-semibold text-[14px]" style={{ color: C.text }}>{rapiraRate.toFixed(2)} ₽</span>
+          ) : (
+            <span className="cmd-mono text-[12px]" style={{ color: rateFailed ? C.coral : C.faint }}>
+              {rateFailed ? "недоступен" : "загрузка…"}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${C.border}` }}>
+          <span className="cmd-display text-[10px] font-semibold tracking-[0.18em] uppercase" style={{ color: C.faint }}>
+            Валютка Махачкала
+          </span>
+          {localLow != null && localHigh != null ? (
+            <span className="cmd-mono font-bold text-[15px]" style={{ color: C.gold }}>
+              {localLow.toFixed(1)}–{localHigh.toFixed(1)} ₽
+            </span>
+          ) : (
+            <span className="cmd-mono text-[12px]" style={{ color: rateFailed ? C.coral : C.faint }}>
+              {rateFailed ? "недоступен" : "загрузка…"}
+            </span>
+          )}
+        </div>
       </Panel>
 
       {transactions.length > 0 && (
@@ -740,35 +773,47 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
   );
 }
 
-/* ---------- Calculator ---------- */
-function CalcTab({ archive, setArchive }) {
-  const [amount, setAmount] = useState("");
-  const [buy, setBuy] = useState("");
-  const [sell, setSell] = useState("");
-  const [rate, setRate] = useState(null);
-  const [rateFailed, setRateFailed] = useState(false);
+/* ---------- Shared rate polling: fetch /api/rate on mount, refresh every 60s ---------- */
+function useRate() {
+  const [state, setState] = useState({ rapiraRate: null, localLow: null, localHigh: null, error: false });
 
   useEffect(() => {
     let cancelled = false;
-    function loadRate() {
+    function load() {
       fetchRate()
         .then((data) => {
           if (!cancelled) {
-            setRate(data.localRate);
-            setRateFailed(false);
+            setState({ rapiraRate: data.rapiraRate, localLow: data.localLow, localHigh: data.localHigh, error: false });
           }
         })
         .catch(() => {
-          if (!cancelled) setRateFailed(true);
+          if (!cancelled) setState((prev) => ({ ...prev, error: true }));
         });
     }
-    loadRate();
-    const interval = setInterval(loadRate, 60000);
+    load();
+    const interval = setInterval(load, 60000);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
   }, []);
+
+  return state;
+}
+
+/* ---------- Calculator ---------- */
+function CalcTab({ archive, setArchive }) {
+  const [amount, setAmount] = useState("");
+  const [buy, setBuy] = useState("");
+  const [sell, setSell] = useState("");
+  const { rapiraRate, localLow, localHigh, error: rateFailed } = useRate();
+  const average = localLow != null && localHigh != null ? (localLow + localHigh) / 2 : null;
+
+  // Auto-pilot pricing: prefill the buy price from the live average once it
+  // loads, but never overwrite a value the operator has already entered.
+  useEffect(() => {
+    if (average != null && buy === "") setBuy(average.toFixed(1));
+  }, [average]);
 
   const amt = Number(amount) || 0;
   const b = Number(buy) || 0;
@@ -791,12 +836,12 @@ function CalcTab({ archive, setArchive }) {
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full cmd-pulse" style={{ background: C.mint, boxShadow: `0 0 6px ${C.mint}` }} />
             <span className="cmd-display text-[10.5px] font-semibold tracking-[0.18em] uppercase" style={{ color: C.faint }}>
-              Курс закупа
+              Валютка Махачкала
             </span>
           </div>
-          {rate != null ? (
+          {localLow != null && localHigh != null ? (
             <span className="cmd-mono font-bold text-lg" style={{ color: C.gold }}>
-              {rate.toFixed(2)} ₽
+              {localLow.toFixed(1)}–{localHigh.toFixed(1)} ₽
             </span>
           ) : (
             <span className="cmd-mono text-[12px]" style={{ color: rateFailed ? C.coral : C.faint }}>
