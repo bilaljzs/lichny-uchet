@@ -85,7 +85,7 @@ const FONTS = (
     .login-transition-overlay { position: fixed; inset: 0; z-index: 9999; overflow: hidden; pointer-events: none; }
 
     .drive-car-img {
-      position: absolute; top: 55%; left: 0; width: 46vw; max-width: 260px;
+      position: absolute; top: 55%; left: 0; width: 65vw; max-width: 420px; height: auto;
       transform: translate(-20vw, -50%) scale(1);
       animation: car-launch 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(0px);
