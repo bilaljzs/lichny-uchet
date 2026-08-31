@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   LayoutGrid, Users, Calculator, BarChart3, Plus, LogOut, CreditCard,
-  ChevronRight, X, Pencil, Trash2, Search, Eye, EyeOff, Loader2, Radio,
+  ChevronRight, X, Pencil, Trash2, Search, Eye, EyeOff, Loader2, Radio, Download,
 } from "lucide-react";
 import { login as apiLogin, fetchState, saveState, fetchRate, getToken, setToken, clearToken } from "./api";
 
@@ -469,10 +469,18 @@ function Stat({ icon: Icon, label, value, suffix, signed }) {
 }
 
 /* ---------- Overview ---------- */
-function Overview({ subjects, transactions, onSearch, search }) {
+function Overview({ subjects, transactions, onSearch, search, onOpenSubject }) {
   const totalCapital = subjects.reduce((s, sub) => s + sub.accounts.reduce((a, acc) => a + acc.balance, 0), 0);
   const accountCount = subjects.reduce((s, sub) => s + sub.accounts.length, 0);
   const { rapiraRate, localLow, localHigh, error: rateFailed } = useRate();
+
+  const query = search.trim().toLowerCase();
+  const matchedSubjects = query
+    ? subjects.filter((s) => s.name.toLowerCase().includes(query) || (s.phone || "").toLowerCase().includes(query))
+    : [];
+  const matchedTransactions = query
+    ? transactions.filter((t) => t.label.toLowerCase().includes(query))
+    : transactions;
 
   return (
     <div className="px-5 pt-7">
@@ -535,11 +543,42 @@ function Overview({ subjects, transactions, onSearch, search }) {
         />
       </Panel>
 
-      {transactions.length > 0 && (
+      {query && (
+        <div className="mb-6">
+          <SectionHead>Найдено субъектов: {matchedSubjects.length}</SectionHead>
+          {matchedSubjects.length === 0 ? (
+            <div className="cmd-display text-[11px] tracking-[0.2em] uppercase text-center py-6" style={{ color: C.faint }}>
+              Ничего не найдено
+            </div>
+          ) : (
+            <div className="space-y-2 pb-2">
+              {matchedSubjects.map((s) => {
+                const cap = s.accounts.reduce((a, acc) => a + acc.balance, 0);
+                return (
+                  <Panel key={s.id} as="button" onClick={() => onOpenSubject(s.id)} className="w-full flex items-center justify-between">
+                    <div>
+                      <div className="text-white font-semibold text-[15px]">{s.name}</div>
+                      <div className="cmd-mono text-[11.5px] mt-0.5" style={{ color: C.faint }}>
+                        {s.phone || "—"} · {s.accounts.length} счёт(а)
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="cmd-mono font-semibold" style={{ color: C.gold }}>{fmt(cap)} ₽</span>
+                      <ChevronRight size={16} style={{ color: C.faint }} />
+                    </div>
+                  </Panel>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {matchedTransactions.length > 0 && (
         <div>
-          <SectionHead>Журнал транзакций</SectionHead>
+          <SectionHead>{query ? `Найдено транзакций: ${matchedTransactions.length}` : "Журнал транзакций"}</SectionHead>
           <div className="space-y-2 pb-4">
-            {transactions.slice(0, 8).map((t) => (
+            {matchedTransactions.slice(0, 8).map((t) => (
               <TxRow key={t.id} t={t} />
             ))}
           </div>
@@ -566,9 +605,8 @@ function TxRow({ t }) {
 }
 
 /* ---------- People ---------- */
-function People({ subjects, setSubjects, addTransaction }) {
+function People({ subjects, setSubjects, addTransaction, openSubject, setOpenSubject }) {
   const [addOpen, setAddOpen] = useState(false);
-  const [openSubject, setOpenSubject] = useState(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
@@ -675,6 +713,26 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
   const [accPhone, setAccPhone] = useState("");
   const [status, setStatus] = useState("РАБОЧИЙ");
 
+  const [editSubjectOpen, setEditSubjectOpen] = useState(false);
+  const [editName, setEditName] = useState(subject.name);
+  const [editPhone, setEditPhone] = useState(subject.phone);
+  const [editNote, setEditNote] = useState(subject.note);
+
+  function openEditSubject() {
+    setEditName(subject.name); setEditPhone(subject.phone); setEditNote(subject.note);
+    setEditSubjectOpen(true);
+  }
+  function saveSubject() {
+    if (!editName.trim()) return;
+    setSubjects((prev) => prev.map((s) => (s.id === subject.id ? { ...s, name: editName.trim(), phone: editPhone, note: editNote } : s)));
+    setEditSubjectOpen(false);
+  }
+  function deleteSubject() {
+    if (!window.confirm(`Удалить субъекта «${subject.name}» вместе со всеми его счетами? Это необратимо.`)) return;
+    setSubjects((prev) => prev.filter((s) => s.id !== subject.id));
+    onClose();
+  }
+
   function resetForm() { setBank(""); setBalance(""); setCardId(""); setAccPhone(""); setStatus("РАБОЧИЙ"); setEditing(null); }
   function openNew() { resetForm(); setAddAccountOpen(true); }
   function openEdit(acc) {
@@ -705,6 +763,7 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
   }
 
   function deleteAccount(id) {
+    if (!window.confirm("Удалить этот счёт? Это необратимо.")) return;
     setSubjects((prev) => prev.map((s) => (s.id === subject.id ? { ...s, accounts: s.accounts.filter((a) => a.id !== id) } : s)));
   }
 
@@ -717,7 +776,17 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
       </div>
 
       <div className="px-5 pt-6">
-        <h2 className="cmd-display text-[30px] font-bold text-white mb-1.5">{subject.name}</h2>
+        <div className="flex items-start justify-between gap-3 mb-1.5">
+          <h2 className="cmd-display text-[30px] font-bold text-white leading-tight">{subject.name}</h2>
+          <div className="flex items-center gap-3 pt-2 shrink-0">
+            <button onClick={openEditSubject} className="flex items-center gap-1 text-[11.5px] uppercase tracking-wide" style={{ color: C.dim }}>
+              <Pencil size={13} />
+            </button>
+            <button onClick={deleteSubject} className="flex items-center gap-1 text-[11.5px] uppercase tracking-wide" style={{ color: C.coral }}>
+              <Trash2 size={13} />
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-2 mb-7">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 10px 24px -10px ${C.red}88` }} />
           <span className="cmd-mono text-[13px] tracking-wide" style={{ color: C.red }}>{subject.phone || "нет телефона"}</span>
@@ -815,6 +884,32 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
           </button>
           <button onClick={saveAccount} className="cmd-display py-3.5 rounded-xl font-semibold text-[12px] tracking-[0.14em] uppercase text-white" style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 10px 24px -10px ${C.red}88` }}>
             Сохранить счёт
+          </button>
+        </div>
+      </Sheet>
+
+      <Sheet open={editSubjectOpen} onClose={() => setEditSubjectOpen(false)} title="Редактирование субъекта">
+        <Field label="Идентификатор (имя)">
+          <TextInput value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Введите имя..." />
+        </Field>
+        <Field label="Канал связи (телефон)">
+          <TextInput value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+7..." />
+        </Field>
+        <Field label="Данные (заметка)">
+          <textarea
+            value={editNote}
+            onChange={(e) => setEditNote(e.target.value)}
+            rows={3}
+            className="cmd-mono w-full bg-black/30 border outline-none text-white px-4 py-3 text-[16px] rounded-xl"
+            style={{ borderColor: C.border }}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3 mt-2">
+          <button onClick={() => setEditSubjectOpen(false)} className="cmd-display py-3.5 rounded-xl border text-[12px] font-semibold tracking-[0.14em] uppercase" style={{ borderColor: C.border, color: C.dim }}>
+            Отмена
+          </button>
+          <button onClick={saveSubject} className="cmd-display py-3.5 rounded-xl font-semibold text-[12px] tracking-[0.14em] uppercase text-white" style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 10px 24px -10px ${C.red}88` }}>
+            Сохранить
           </button>
         </div>
       </Sheet>
@@ -934,7 +1029,23 @@ function CalcTab({ archive, setArchive }) {
         Зафиксировать в архив
       </button>
 
-      <SectionHead>Архив расчётов</SectionHead>
+      <SectionHead
+        right={
+          archive.length > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm("Очистить весь архив расчётов? Это необратимо.")) setArchive([]);
+              }}
+              className="flex items-center gap-1 text-[11.5px] uppercase tracking-wide"
+              style={{ color: C.coral }}
+            >
+              <Trash2 size={12.5} /> Очистить
+            </button>
+          )
+        }
+      >
+        Архив расчётов
+      </SectionHead>
       {archive.length === 0 ? (
         <div className="cmd-display text-[11px] tracking-[0.2em] uppercase text-center py-10" style={{ color: C.faint }}>Архив пуст</div>
       ) : (
@@ -957,6 +1068,38 @@ function CalcTab({ archive, setArchive }) {
 }
 
 /* ---------- Summary ---------- */
+function csvCell(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+function exportCSV(subjects, transactions) {
+  const rows = [];
+  rows.push(["Субъекты"]);
+  rows.push(["Имя", "Телефон", "Банк", "Баланс", "Карта", "Статус"]);
+  subjects.forEach((s) => {
+    if (s.accounts.length === 0) {
+      rows.push([s.name, s.phone || "", "", "", "", ""]);
+    } else {
+      s.accounts.forEach((a) => rows.push([s.name, s.phone || "", a.bank, a.balance, a.cardId, a.status]));
+    }
+  });
+  rows.push([]);
+  rows.push(["Транзакции"]);
+  rows.push(["Дата", "Описание", "Сумма"]);
+  transactions.forEach((t) => rows.push([t.time, t.label, t.delta]));
+
+  const csv = rows.map((r) => r.map(csvCell).join(";")).join("\r\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `finance-export-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 function Summary({ subjects, transactions }) {
   const totalCapital = subjects.reduce((s, sub) => s + sub.accounts.reduce((a, acc) => a + acc.balance, 0), 0);
   const accountCount = subjects.reduce((s, sub) => s + sub.accounts.length, 0);
@@ -965,7 +1108,20 @@ function Summary({ subjects, transactions }) {
 
   return (
     <div className="px-5 pt-6">
-      <SectionHead icon={BarChart3}>Аналитический центр</SectionHead>
+      <SectionHead
+        icon={BarChart3}
+        right={
+          <button
+            onClick={() => exportCSV(subjects, transactions)}
+            className="cmd-display flex items-center gap-1 rounded-full text-[10.5px] font-semibold tracking-[0.14em] uppercase px-3.5 py-2"
+            style={{ color: C.red, border: `1px solid ${C.red}66` }}
+          >
+            <Download size={13} /> Экспорт
+          </button>
+        }
+      >
+        Аналитический центр
+      </SectionHead>
 
       <div className="cmd-display text-[10.5px] font-semibold tracking-[0.2em] uppercase mb-1" style={{ color: C.faint }}>
         Агрегированный капитал
@@ -1007,6 +1163,7 @@ export default function App() {
   const [archive, setArchive] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [search, setSearch] = useState("");
+  const [openSubject, setOpenSubject] = useState(null);
   const [loginError, setLoginError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1166,8 +1323,24 @@ export default function App() {
       )}
 
       <div className="relative z-10 flex-1 overflow-y-auto pb-28">
-        {tab === "overview" && <Overview subjects={subjects} transactions={transactions} search={search} onSearch={setSearch} />}
-        {tab === "people" && <People subjects={subjects} setSubjects={setSubjects} addTransaction={addTransaction} />}
+        {tab === "overview" && (
+          <Overview
+            subjects={subjects}
+            transactions={transactions}
+            search={search}
+            onSearch={setSearch}
+            onOpenSubject={(id) => { setOpenSubject(id); setTab("people"); }}
+          />
+        )}
+        {tab === "people" && (
+          <People
+            subjects={subjects}
+            setSubjects={setSubjects}
+            addTransaction={addTransaction}
+            openSubject={openSubject}
+            setOpenSubject={setOpenSubject}
+          />
+        )}
         {tab === "calc" && <CalcTab archive={archive} setArchive={setArchive} />}
         {tab === "summary" && <Summary subjects={subjects} transactions={transactions} />}
       </div>
