@@ -78,39 +78,109 @@ const FONTS = (
     @keyframes ferrari-shine-sweep { 0% { left: -60%; } 35%,100% { left: 130%; } }
     @media (prefers-reduced-motion: reduce) { .ferrari-glow, .ferrari-img-wrap, .ferrari-shine { animation: none !important; } }
 
-    .login-form-exit { animation: form-exit 0.4s ease forwards; }
+    .login-form-exit { animation: form-exit 0.35s ease forwards; }
     @keyframes form-exit { to { opacity: 0; transform: scale(0.92); } }
 
-    .login-transition-overlay { position: fixed; inset: 0; z-index: 60; overflow: hidden; pointer-events: none; }
-    .drive-car { position: absolute; top: 52%; left: 0; width: 42vw; max-width: 240px; transform: translate(-20vw, -50%); animation: drive-across 1.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; filter: drop-shadow(0 8px 18px rgba(0,0,0,0.55)); }
-    @keyframes drive-across { from { transform: translate(-20vw, -50%); } to { transform: translate(120vw, -50%); } }
+    /* ---- Login transition: launch jolt + layered smoke + fullscreen smog cover ---- */
+    .login-transition-overlay { position: fixed; inset: 0; z-index: 9999; overflow: hidden; pointer-events: none; }
 
-    .smoke-puff { position: absolute; top: 52%; width: 15vw; max-width: 70px; height: 15vw; max-height: 70px; border-radius: 9999px; background: radial-gradient(circle, rgba(190,190,190,0.6), rgba(190,190,190,0.15) 60%, transparent 75%); filter: blur(6px); opacity: 0; animation: smoke-out 1s ease-out forwards; }
-    @keyframes smoke-out { 0% { opacity: 0.85; transform: translate(0, -50%) scale(1); } 100% { opacity: 0; transform: translate(-10%, -130%) scale(2.5); } }
-    .smoke-1 { left: -18vw; animation-delay: 0.05s; }
-    .smoke-2 { left: -8vw; animation-delay: 0.2s; }
-    .smoke-3 { left: 4vw; animation-delay: 0.35s; }
-    .smoke-4 { left: 18vw; animation-delay: 0.5s; }
-    .smoke-5 { left: 34vw; animation-delay: 0.65s; }
-    .smoke-6 { left: 52vw; animation-delay: 0.8s; }
-    @media (prefers-reduced-motion: reduce) { .drive-car, .smoke-puff, .login-form-exit { animation: none !important; opacity: 0; } }
+    .drive-car-img {
+      position: absolute; top: 55%; left: 0; width: 46vw; max-width: 260px;
+      transform: translate(-20vw, -50%) scale(1);
+      animation: car-launch 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(0px);
+    }
+    @keyframes car-launch {
+      0%   { transform: translate(-20vw, -50%) scale(1, 1); filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55)) blur(0px); }
+      5%   { transform: translate(-21vw, -49%) scale(1.05, 0.95); filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5)) blur(0px); }
+      13%  { transform: translate(-16vw, -50%) scale(1, 1); filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(1.6px); }
+      55%  { filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(2px); }
+      88%  { filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(1px); }
+      100% { transform: translate(120vw, -50%) scale(1, 1); filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(0px); }
+    }
+
+    /* layer 1: fine dust kicked up from the rear wheel at launch — one shared blur, not per-particle */
+    .dust-layer { position: absolute; inset: 0; filter: blur(1.5px); }
+    .dust-particle { position: absolute; top: 62%; left: 4vw; width: 10px; height: 10px; border-radius: 9999px; background: radial-gradient(circle, rgba(205,196,184,0.85), rgba(205,196,184,0) 70%); opacity: 0; animation: dust-kick 0.55s ease-out forwards; }
+    @keyframes dust-kick { 0% { opacity: 0.8; transform: translate(0, 0) scale(0.4); } 100% { opacity: 0; transform: translate(-8px, 20px) scale(1.7); } }
+    .dust-1 { left: 3vw; top: 63%; animation-delay: 0.02s; }
+    .dust-2 { left: 1vw; top: 60%; animation-delay: 0.07s; }
+    .dust-3 { left: 5.5vw; top: 65%; animation-delay: 0.05s; }
+    .dust-4 { left: 0.5vw; top: 58%; animation-delay: 0.13s; }
+    .dust-5 { left: 4.5vw; top: 61%; animation-delay: 0.17s; }
+    .dust-6 { left: 2vw; top: 64%; animation-delay: 0.21s; }
+
+    /* layer 2: main smoke trail — 10 layered blur clouds, one shared blur+blend on the parent */
+    .smoke-trail-layer { position: absolute; inset: 0; filter: blur(5px); mix-blend-mode: screen; }
+    .smoke-cloud { position: absolute; top: 55%; width: 16vw; max-width: 92px; height: 16vw; max-height: 92px; border-radius: 9999px; background: radial-gradient(circle, rgba(214,212,209,0.7), rgba(160,158,156,0.3) 55%, transparent 76%); opacity: 0; animation: cloud-puff 1.7s ease-out forwards; }
+    @keyframes cloud-puff { 0% { opacity: 0.7; transform: translateY(0) scale(0.3); } 100% { opacity: 0; transform: translateY(var(--puff-y, -20px)) scale(3.6); } }
+    .cloud-1  { left: -17vw; top: 53%; animation-delay: 0.00s; --puff-y: -18px; }
+    .cloud-2  { left: -9vw;  top: 58%; animation-delay: 0.08s; --puff-y: 24px; }
+    .cloud-3  { left: -1vw;  top: 50%; animation-delay: 0.16s; --puff-y: -30px; }
+    .cloud-4  { left: 7vw;   top: 56%; animation-delay: 0.24s; --puff-y: 16px; }
+    .cloud-5  { left: 15vw;  top: 52%; animation-delay: 0.32s; --puff-y: -24px; }
+    .cloud-6  { left: 24vw;  top: 59%; animation-delay: 0.40s; --puff-y: 28px; }
+    .cloud-7  { left: 33vw;  top: 54%; animation-delay: 0.48s; --puff-y: -16px; }
+    .cloud-8  { left: 42vw;  top: 57%; animation-delay: 0.56s; --puff-y: 20px; }
+    .cloud-9  { left: 51vw;  top: 51%; animation-delay: 0.64s; --puff-y: -26px; }
+    .cloud-10 { left: 60vw;  top: 55%; animation-delay: 0.72s; --puff-y: 14px; }
+
+    /* layer 3: fullscreen smog — hides the screen swap, then clears once the app is mounted underneath */
+    .smog-overlay {
+      position: fixed; inset: -5%; pointer-events: none;
+      background:
+        radial-gradient(circle at 28% 38%, rgba(218,216,213,0.9), transparent 60%),
+        radial-gradient(circle at 72% 62%, rgba(188,186,183,0.9), transparent 65%),
+        radial-gradient(circle at 50% 25%, rgba(228,226,223,0.85), transparent 55%),
+        radial-gradient(circle at 18% 72%, rgba(178,176,173,0.9), transparent 60%),
+        radial-gradient(circle at 82% 22%, rgba(200,198,195,0.9), transparent 55%),
+        #b6b4b1;
+      filter: blur(16px);
+      opacity: 0;
+    }
+    .smog-in { animation: smog-fill 0.85s ease-in forwards; animation-delay: 0.4s; }
+    @keyframes smog-fill { from { opacity: 0; transform: scale(1); } to { opacity: 0.97; transform: scale(1); } }
+    .smog-out { animation: smog-clear 1s ease-in forwards; }
+    @keyframes smog-clear { from { opacity: 0.97; transform: scale(1); } to { opacity: 0; transform: scale(1.15); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .drive-car-img, .dust-particle, .smoke-cloud, .smog-in, .smog-out, .login-form-exit { animation: none !important; }
+      .smog-overlay { opacity: 0 !important; }
+    }
   `}</style>
 );
 
-function DriveCarSVG({ className }) {
-  return (
-    <svg viewBox="0 0 200 70" className={className} xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="42" cy="54" rx="15" ry="15" fill="#141414" />
-      <ellipse cx="42" cy="54" rx="6" ry="6" fill="#3a3a3a" />
-      <ellipse cx="158" cy="54" rx="15" ry="15" fill="#141414" />
-      <ellipse cx="158" cy="54" rx="6" ry="6" fill="#3a3a3a" />
-      <path d="M8 46 Q16 20 55 18 L128 18 Q152 20 175 34 L190 40 L190 48 L10 48 Z" fill="#ff2436" />
-      <path d="M65 19 L108 19 L102 33 L72 33 Z" fill="#14100f" />
-      <path d="M8 46 L190 46 L190 50 L8 50 Z" fill="#c0121f" />
-      <rect x="182" y="24" width="6" height="18" rx="1.5" fill="#14100f" />
-      <rect x="172" y="20" width="20" height="4.5" rx="1.5" fill="#14100f" />
-      <circle cx="50" cy="30" r="4" fill="#f3d29a" />
-    </svg>
+/* Placeholder hero asset generated in-repo (client/public/assets/car-hero.png) —
+   a logo-free red sports-car silhouette rendered from inline SVG. Swap the PNG
+   file for real artwork/photography later; the <img> reference below doesn't
+   need to change. */
+function LoginTransition({ phase }) {
+  return createPortal(
+    <div className="login-transition-overlay">
+      <div className="dust-layer">
+        <div className="dust-particle dust-1" />
+        <div className="dust-particle dust-2" />
+        <div className="dust-particle dust-3" />
+        <div className="dust-particle dust-4" />
+        <div className="dust-particle dust-5" />
+        <div className="dust-particle dust-6" />
+      </div>
+      <div className="smoke-trail-layer">
+        <div className="smoke-cloud cloud-1" />
+        <div className="smoke-cloud cloud-2" />
+        <div className="smoke-cloud cloud-3" />
+        <div className="smoke-cloud cloud-4" />
+        <div className="smoke-cloud cloud-5" />
+        <div className="smoke-cloud cloud-6" />
+        <div className="smoke-cloud cloud-7" />
+        <div className="smoke-cloud cloud-8" />
+        <div className="smoke-cloud cloud-9" />
+        <div className="smoke-cloud cloud-10" />
+      </div>
+      <img src="/assets/car-hero.png" alt="" className="drive-car-img" draggable="false" />
+      <div className={`smog-overlay ${phase === "fadeout" ? "smog-out" : "smog-in"}`} />
+    </div>,
+    document.body
   );
 }
 
@@ -323,18 +393,6 @@ function Login({ onLogin, error, busy, transitioning }) {
           <br />У каждого логина — своя отдельная база.
         </p>
       </form>
-
-      {transitioning && (
-        <div className="login-transition-overlay">
-          <div className="smoke-puff smoke-1" />
-          <div className="smoke-puff smoke-2" />
-          <div className="smoke-puff smoke-3" />
-          <div className="smoke-puff smoke-4" />
-          <div className="smoke-puff smoke-5" />
-          <div className="smoke-puff smoke-6" />
-          <DriveCarSVG className="drive-car" />
-        </div>
-      )}
     </div>
   );
 }
@@ -944,7 +1002,7 @@ export default function App() {
   const [loginError, setLoginError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
+  const [transitionPhase, setTransitionPhase] = useState(null); // null | "launch" | "fadeout"
   const [checkingSession, setCheckingSession] = useState(true);
   const loadedRef = useRef(false);
   const saveTimer = useRef(null);
@@ -985,9 +1043,11 @@ export default function App() {
       setToken(token);
       const state = await fetchState();
 
-      // Play the drive-off transition before switching to the main screen —
-      // duration must match the .drive-car animation length in FONTS above.
-      setTransitioning(true);
+      // Launch: car + smoke play, form fades out, smog builds toward ~0.97.
+      setTransitionPhase("launch");
+
+      // Swap the actual screen content while the smog is at/near peak opacity,
+      // so the unmount/mount happens invisibly underneath it.
       setTimeout(() => {
         loadedRef.current = false;
         setSubjects(state.subjects || []);
@@ -995,9 +1055,14 @@ export default function App() {
         setTransactions(state.transactions || []);
         setUser(confirmedLogin);
         loadedRef.current = true;
-        setTransitioning(false);
         setBusy(false);
       }, 1300);
+
+      // Brief hold at peak smog after the swap, then start clearing it.
+      setTimeout(() => setTransitionPhase("fadeout"), 1600);
+
+      // Fade-out animation (1s) has finished — drop the overlay entirely.
+      setTimeout(() => setTransitionPhase(null), 2600);
     } catch (err) {
       setLoginError(err.message || "Не удалось войти");
       setBusy(false);
@@ -1024,28 +1089,6 @@ export default function App() {
     return () => clearTimeout(saveTimer.current);
   }, [subjects, archive, transactions, user]);
 
-  if (checkingSession) {
-    return (
-      <div className="cmd-root w-full h-full relative flex items-center justify-center">
-        {FONTS}
-        <AuroraBackground />
-        <Loader2 size={22} className="animate-spin relative z-10" color={C.red} />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="cmd-root w-full h-full relative">
-        {FONTS}
-        <AuroraBackground />
-        <div className="relative z-10">
-          <Login onLogin={handleLogin} error={loginError} busy={busy} transitioning={transitioning} />
-        </div>
-      </div>
-    );
-  }
-
   const NAV = [
     { id: "overview", label: "Обзор", icon: LayoutGrid },
     { id: "people", label: "Люди", icon: Users },
@@ -1053,8 +1096,44 @@ export default function App() {
     { id: "summary", label: "Итоги", icon: BarChart3 },
   ];
 
+  // Rendered once, as a sibling of whichever screen is active below — kept out
+  // of the checkingSession/!user/main-app branches so React never unmounts
+  // and remounts it (and resets its CSS animations) at the exact moment the
+  // screen swap happens underneath it.
+  const transitionOverlay = transitionPhase && <LoginTransition phase={transitionPhase} />;
+
+  if (checkingSession) {
+    return (
+      <>
+        {transitionOverlay}
+        <div className="cmd-root w-full h-full relative flex items-center justify-center">
+          {FONTS}
+          <AuroraBackground />
+          <Loader2 size={22} className="animate-spin relative z-10" color={C.red} />
+        </div>
+      </>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        {transitionOverlay}
+        <div className="cmd-root w-full h-full relative">
+          {FONTS}
+          <AuroraBackground />
+          <div className="relative z-10">
+            <Login onLogin={handleLogin} error={loginError} busy={busy} transitioning={transitionPhase === "launch"} />
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
-    <div className="cmd-root w-full h-full flex flex-col relative">
+    <>
+      {transitionOverlay}
+      <div className="cmd-root w-full h-full flex flex-col relative">
       {FONTS}
       <AuroraBackground />
 
@@ -1107,6 +1186,7 @@ export default function App() {
           })}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
