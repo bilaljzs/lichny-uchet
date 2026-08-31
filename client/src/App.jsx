@@ -150,10 +150,6 @@ const FONTS = (
   `}</style>
 );
 
-/* Placeholder hero asset generated in-repo (client/public/assets/car-hero.png) —
-   a logo-free red sports-car silhouette rendered from inline SVG. Swap the PNG
-   file for real artwork/photography later; the <img> reference below doesn't
-   need to change. */
 function LoginTransition({ phase }) {
   return createPortal(
     <div className="login-transition-overlay">
