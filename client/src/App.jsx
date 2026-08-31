@@ -5,9 +5,11 @@ import {
   ChevronRight, X, Pencil, Trash2, Search, Eye, EyeOff, Loader2, Radio,
 } from "lucide-react";
 import { login as apiLogin, fetchState, saveState, fetchRate, getToken, setToken, clearToken } from "./api";
+import { C, STATUSES, STATUS_COLOR } from "./theme";
+import AccountCardCarousel from "./components/AccountCardCarousel";
 
 /* ============================================================
-   DESIGN TOKENS — v5 "Scuderia"
+   DESIGN TOKENS — v5 "Scuderia" (see ./theme.js)
    Elite/racing repaint: near-black carbon surfaces, Ferrari red as
    the primary brand/interactive accent (borders, buttons, active
    states), gold reserved specifically for money figures (₽ values),
@@ -15,29 +17,6 @@ import { login as apiLogin, fetchState, saveState, fetchRate, getToken, setToken
    the glass panels is recolored to red/crimson/chrome, and the
    login screen carries an animated hero shot of the car.
    ============================================================ */
-
-const C = {
-  bg: "#0a0504",
-  surfaceGlass: "rgba(22,12,11,0.44)",
-  surfaceGlassStrong: "rgba(16,9,8,0.62)",
-  border: "rgba(255,255,255,0.09)",
-  borderStrong: "rgba(255,255,255,0.20)",
-  red: "#ff2436",
-  redSoft: "#ff5c52",
-  redDim: "rgba(255,36,54,0.16)",
-  gold: "#e6b869",
-  goldSoft: "#f3d29a",
-  goldDim: "rgba(230,184,105,0.14)",
-  chrome: "#d8d9dd",
-  mint: "#39d9ab",
-  mintDim: "rgba(57,217,171,0.14)",
-  coral: "#ff7a6b",
-  coralDim: "rgba(255,122,107,0.14)",
-  amber: "#ffb020",
-  text: "#f6f4ee",
-  dim: "rgba(246,244,238,0.58)",
-  faint: "rgba(246,244,238,0.34)",
-};
 
 const FONTS = (
   <style>{`
@@ -447,9 +426,6 @@ function TextInput(props) {
   );
 }
 
-const STATUSES = ["РАБОЧИЙ", "ПРОВЕРКА", "БЛОКИРОВКА", "НЕАКТИВЕН"];
-const STATUS_COLOR = { РАБОЧИЙ: C.mint, ПРОВЕРКА: C.amber, БЛОКИРОВКА: C.coral, НЕАКТИВЕН: C.faint };
-
 /* ---------- Stat card ---------- */
 function Stat({ icon: Icon, label, value, suffix, signed }) {
   const valueColor = signed ? (value >= 0 ? C.mint : C.coral) : C.text;
@@ -730,6 +706,12 @@ function SubjectDetail({ subject, onClose, setSubjects, addTransaction }) {
           <CountUp value={capital} className="cmd-serif text-[40px] leading-none font-medium text-white" style={{ textShadow: `0 0 26px rgba(201,161,90,0.35)` }} />
           <span className="cmd-serif text-2xl font-medium" style={{ color: C.gold }}>₽</span>
         </div>
+
+        {subject.accounts.length > 0 && (
+          <div className="mb-8">
+            <AccountCardCarousel accounts={subject.accounts} ownerName={subject.name} />
+          </div>
+        )}
 
         <SectionHead
           icon={CreditCard}
