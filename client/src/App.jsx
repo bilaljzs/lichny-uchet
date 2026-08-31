@@ -472,13 +472,25 @@ function Stat({ icon: Icon, label, value, suffix, signed }) {
 function Overview({ subjects, transactions, onSearch, search }) {
   const totalCapital = subjects.reduce((s, sub) => s + sub.accounts.reduce((a, acc) => a + acc.balance, 0), 0);
   const accountCount = subjects.reduce((s, sub) => s + sub.accounts.length, 0);
-  const { localLow, localHigh, error: rateFailed } = useRate();
+  const { rapiraRate, localLow, localHigh, error: rateFailed } = useRate();
 
   return (
     <div className="px-5 pt-7">
       <div className="flex items-start justify-between mb-6">
         <Eyebrow>Текущий статус</Eyebrow>
         <div className="text-right">
+          <div className="cmd-display text-[8.5px] font-semibold tracking-[0.16em] uppercase mb-1" style={{ color: C.faint }}>
+            Курс Rapira
+          </div>
+          {rapiraRate != null ? (
+            <div className="cmd-mono text-[12px] font-semibold leading-none mb-2" style={{ color: C.text }}>
+              {rapiraRate.toFixed(2)} ₽
+            </div>
+          ) : (
+            <div className="cmd-mono text-[11px] leading-none mb-2" style={{ color: rateFailed ? C.coral : C.faint }}>
+              {rateFailed ? "недоступен" : "…"}
+            </div>
+          )}
           <div className="cmd-display text-[8.5px] font-semibold tracking-[0.16em] uppercase mb-1" style={{ color: C.faint }}>
             Валютка Мах
           </div>
