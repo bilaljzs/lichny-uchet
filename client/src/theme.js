@@ -1,24 +1,27 @@
 /* ============================================================
-   DESIGN TOKENS — v5 "Scuderia"
-   Elite/racing repaint: near-black carbon surfaces, Ferrari red as
-   the primary brand/interactive accent (borders, buttons, active
-   states), gold reserved specifically for money figures (₽ values),
-   mint/coral kept for financial gain/loss.
+   DESIGN TOKENS — v6 "Yamakassi Noir & Gold"
+   Boutique exchange-house repaint to match the Yamakassi Cash
+   wordmark: warm near-black surfaces, a rich gold as the primary
+   brand/interactive accent (borders, buttons, active states — kept
+   under the `red`/`redSoft`/`redDim` keys for historical reasons,
+   values only), a champagne-platinum reserved for money figures
+   (₽ values, under the `gold` keys), mint/coral kept for financial
+   gain/loss.
    ============================================================ */
 
 export const C = {
-  bg: "#0a0504",
-  surfaceGlass: "rgba(22,12,11,0.44)",
-  surfaceGlassStrong: "rgba(16,9,8,0.62)",
+  bg: "#0a0806",
+  surfaceGlass: "rgba(18,15,11,0.44)",
+  surfaceGlassStrong: "rgba(13,11,8,0.62)",
   border: "rgba(255,255,255,0.09)",
   borderStrong: "rgba(255,255,255,0.20)",
-  red: "#ff2436",
-  redSoft: "#ff5c52",
-  redDim: "rgba(255,36,54,0.16)",
-  gold: "#e6b869",
-  goldSoft: "#f3d29a",
-  goldDim: "rgba(230,184,105,0.14)",
-  chrome: "#d8d9dd",
+  red: "#c9a24b",
+  redSoft: "#e8c878",
+  redDim: "rgba(201,162,75,0.16)",
+  gold: "#d9cdb0",
+  goldSoft: "#efe6d0",
+  goldDim: "rgba(217,205,176,0.14)",
+  chrome: "#b8b2a0",
   mint: "#39d9ab",
   mintDim: "rgba(57,217,171,0.14)",
   coral: "#ff7a6b",
