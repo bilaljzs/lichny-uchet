@@ -294,6 +294,11 @@ function Login({ onLogin, error, busy, transitioning }) {
   return (
     <div className="min-h-full flex items-center justify-center px-6 py-12">
       <form onSubmit={submit} className={`w-full max-w-sm cmd-fade-in ${transitioning ? "login-form-exit" : ""}`}>
+        <div className="flex flex-col items-center mb-7">
+          <div className="yamakassi-word" style={{ fontSize: 30 }}>Yamakassi</div>
+          <div className="yamakassi-sub" style={{ marginTop: 4 }}>CASH</div>
+        </div>
+
         <div className="ferrari-hero mb-6">
           <div className="ferrari-glow" />
           <div className="ferrari-img-wrap">
