@@ -33,7 +33,7 @@ const FONTS = (
     .aurora-wrap { position: fixed; inset: 0; overflow: hidden; z-index: 0; animation: hue-drift 50s linear infinite; }
     .aurora-blob { position: absolute; border-radius: 9999px; filter: blur(50px); opacity: 0.85; mix-blend-mode: screen; will-change: transform; }
     .aurora-a { width: 68vw; height: 68vw; background: radial-gradient(circle, ${C.red}, transparent 68%); top: -18vw; left: -14vw; animation: drift-a 16s ease-in-out infinite; opacity: 0.55; }
-    .aurora-b { width: 62vw; height: 62vw; background: radial-gradient(circle, #4a3313, transparent 68%); bottom: -20vw; right: -16vw; animation: drift-b 19s ease-in-out infinite; }
+    .aurora-b { width: 62vw; height: 62vw; background: radial-gradient(circle, #0f2350, transparent 68%); bottom: -20vw; right: -16vw; animation: drift-b 19s ease-in-out infinite; }
     .aurora-c { width: 52vw; height: 52vw; background: radial-gradient(circle, ${C.chrome}, transparent 68%); top: 28vh; right: -12vw; animation: drift-c 14s ease-in-out infinite; opacity: 0.14; }
     .aurora-d { width: 34vw; height: 34vw; background: radial-gradient(circle, ${C.goldSoft}, transparent 72%); top: 8vh; left: 20vw; opacity: 0.12; animation: drift-d 11s ease-in-out infinite; }
     @keyframes drift-a { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(16vw,18vh) scale(1.22); } }
@@ -53,7 +53,7 @@ const FONTS = (
     @keyframes cmd-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
     .ferrari-hero { position: relative; width: 100%; max-width: 340px; margin: 0 auto; }
-    .ferrari-glow { position: absolute; inset: -20% -10% auto -10%; height: 140%; border-radius: 9999px; background: radial-gradient(ellipse at center, rgba(201,162,75,0.55), rgba(201,162,75,0.08) 55%, transparent 75%); filter: blur(18px); animation: ferrari-glow-pulse 3.2s ease-in-out infinite; }
+    .ferrari-glow { position: absolute; inset: -20% -10% auto -10%; height: 140%; border-radius: 9999px; background: radial-gradient(ellipse at center, rgba(63,127,224,0.55), rgba(63,127,224,0.08) 55%, transparent 75%); filter: blur(18px); animation: ferrari-glow-pulse 3.2s ease-in-out infinite; }
     @keyframes ferrari-glow-pulse { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
     .ferrari-img-wrap { position: relative; overflow: hidden; animation: ferrari-float 5s ease-in-out infinite; }
     @keyframes ferrari-float { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(-0.6deg); } }
