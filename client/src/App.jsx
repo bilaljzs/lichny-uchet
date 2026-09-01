@@ -1148,7 +1148,7 @@ function todayDayIndex() {
 }
 
 function cardLine(c) {
-  return `${c.bank}\n\n${c.holderName}\n\n${c.phone}`;
+  return `[${c.bank}] - ${c.holderName}\n•${c.phone}•`;
 }
 
 function TodayCards({ cards }) {
