@@ -1,6 +1,6 @@
 {
-  "name": "Личный учёт",
-  "short_name": "Личный учёт",
+  "name": "Yamakassi Cash",
+  "short_name": "Yamakassi",
   "description": "Учёт субъектов, счетов и курса валют",
   "start_url": "/",
   "scope": "/",

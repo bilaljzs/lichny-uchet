@@ -21,11 +21,14 @@ import AccountCardCarousel from "./components/AccountCardCarousel";
 
 const FONTS = (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Cormorant:ital@1&family=Marcellus&display=swap');
     .cmd-root { font-family: 'Inter', system-ui, sans-serif; background: ${C.bg}; }
     .cmd-display { font-family: 'Space Grotesk', system-ui, sans-serif; }
     .cmd-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
     .cmd-serif { font-family: 'Fraunces', Georgia, serif; font-style: italic; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+    .yamakassi-word { font-family: 'Cormorant', serif; font-style: italic; font-size: 19px; line-height: 1; color: #f2f2f2; }
+    .yamakassi-sub { font-family: 'Marcellus', serif; font-size: 7.5px; letter-spacing: 0.35em; color: #c9a24b; margin-top: 3px; }
 
     .aurora-wrap { position: fixed; inset: 0; overflow: hidden; z-index: 0; animation: hue-drift 50s linear infinite; }
     .aurora-blob { position: absolute; border-radius: 9999px; filter: blur(50px); opacity: 0.85; mix-blend-mode: screen; will-change: transform; }
@@ -1521,6 +1524,10 @@ export default function App() {
         <div className="flex items-center gap-2">
           <Radio size={12} color={C.mint} className="cmd-pulse" />
           <span className="cmd-display text-white font-semibold text-[14px] tracking-wide">{user}</span>
+        </div>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none select-none">
+          <div className="yamakassi-word">Yamakassi</div>
+          <div className="yamakassi-sub">CASH</div>
         </div>
         <button
           onClick={handleLogout}
