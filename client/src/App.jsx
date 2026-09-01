@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import {
   LayoutGrid, Users, Calculator, BarChart3, Plus, LogOut, CreditCard,
   ChevronRight, X, Pencil, Trash2, Search, Eye, EyeOff, Loader2, Radio, Download,
+  Copy, Calendar,
 } from "lucide-react";
 import { login as apiLogin, fetchState, saveState, fetchRate, getToken, setToken, clearToken } from "./api";
 import { C, STATUSES, STATUS_COLOR } from "./theme";
@@ -445,7 +446,7 @@ function Stat({ icon: Icon, label, value, suffix, signed }) {
 }
 
 /* ---------- Overview ---------- */
-function Overview({ subjects, transactions, onSearch, search, onOpenSubject }) {
+function Overview({ subjects, transactions, onSearch, search, onOpenSubject, cards }) {
   const totalCapital = subjects.reduce((s, sub) => s + sub.accounts.reduce((a, acc) => a + acc.balance, 0), 0);
   const accountCount = subjects.reduce((s, sub) => s + sub.accounts.length, 0);
   const { rapiraRate, localLow, localHigh, error: rateFailed } = useRate();
@@ -489,6 +490,8 @@ function Overview({ subjects, transactions, onSearch, search, onOpenSubject }) {
           )}
         </div>
       </div>
+
+      <TodayCards cards={cards} />
 
       <div className="mb-8">
         <div className="cmd-display text-[10.5px] font-semibold tracking-[0.2em] uppercase mb-1" style={{ color: C.faint }}>
@@ -1137,6 +1140,232 @@ function Summary({ subjects, transactions }) {
   );
 }
 
+/* ---------- Cards (Карты) ---------- */
+const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+function todayDayIndex() {
+  return (new Date().getDay() + 6) % 7; // 0 = Monday ... 6 = Sunday
+}
+
+function cardLine(c) {
+  return `${c.bank}/${c.holderName}/${c.phone}`;
+}
+
+function TodayCards({ cards }) {
+  const [copied, setCopied] = useState(false);
+  const today = todayDayIndex();
+  const todays = cards.filter((c) => (c.days || []).includes(today));
+
+  if (cards.length === 0) return null;
+
+  function copyAll() {
+    navigator.clipboard.writeText(todays.map(cardLine).join("\n")).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    });
+  }
+
+  return (
+    <div className="mb-8">
+      <SectionHead
+        icon={CreditCard}
+        right={
+          todays.length > 0 && (
+            <button
+              onClick={copyAll}
+              className="cmd-display flex items-center gap-1 rounded-full text-[10.5px] font-semibold tracking-[0.14em] uppercase px-3.5 py-2"
+              style={{ color: copied ? C.mint : C.red, border: `1px solid ${copied ? "rgba(57,217,171,0.45)" : C.red + "66"}` }}
+            >
+              <Copy size={13} /> {copied ? "Скопировано" : "Копировать всё"}
+            </button>
+          )
+        }
+      >
+        Сегодня
+      </SectionHead>
+      {todays.length === 0 ? (
+        <div className="cmd-display text-[11px] tracking-[0.2em] uppercase text-center py-6" style={{ color: C.faint }}>
+          На сегодня карт нет
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {todays.map((c) => (
+            <Panel key={c.id} tone="gold" className="flex items-center justify-between">
+              <div>
+                <div className="text-white font-semibold text-[15px]">{c.bank}</div>
+                <div className="cmd-mono text-[11.5px] mt-0.5" style={{ color: C.faint }}>
+                  {c.holderName} · {c.phone}
+                </div>
+              </div>
+            </Panel>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CardsTab({ cards, setCards }) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [bank, setBank] = useState("");
+  const [holderName, setHolderName] = useState("");
+  const [phone, setPhone] = useState("");
+
+  function openAdd() {
+    setEditingId(null);
+    setBank("");
+    setHolderName("");
+    setPhone("");
+    setSheetOpen(true);
+  }
+
+  function openEdit(c) {
+    setEditingId(c.id);
+    setBank(c.bank);
+    setHolderName(c.holderName);
+    setPhone(c.phone);
+    setSheetOpen(true);
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    if (!bank.trim() || !holderName.trim() || !phone.trim()) return;
+    if (editingId) {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === editingId ? { ...c, bank: bank.trim(), holderName: holderName.trim(), phone: phone.trim() } : c
+        )
+      );
+    } else {
+      setCards((prev) => [...prev, { id: uid(), bank: bank.trim(), holderName: holderName.trim(), phone: phone.trim(), days: [] }]);
+    }
+    setSheetOpen(false);
+  }
+
+  function removeCard(id) {
+    if (!window.confirm("Удалить эту карту?")) return;
+    setCards((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  function toggleDay(id, dayIdx) {
+    setCards((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+        const days = c.days || [];
+        const has = days.includes(dayIdx);
+        return { ...c, days: has ? days.filter((d) => d !== dayIdx) : [...days, dayIdx].sort() };
+      })
+    );
+  }
+
+  return (
+    <div className="px-5 pt-7">
+      <Eyebrow>Карты</Eyebrow>
+      <h1 className="cmd-display text-[26px] font-bold text-white tracking-tight mt-1 mb-6">Реквизиты</h1>
+
+      <TodayCards cards={cards} />
+
+      <SectionHead
+        icon={CreditCard}
+        right={
+          <button
+            onClick={openAdd}
+            className="cmd-display flex items-center gap-1 rounded-full text-[10.5px] font-semibold tracking-[0.14em] uppercase px-3.5 py-2"
+            style={{ color: C.red, border: `1px solid ${C.red}66` }}
+          >
+            <Plus size={13} /> Добавить
+          </button>
+        }
+      >
+        Управление картами
+      </SectionHead>
+
+      {cards.length === 0 ? (
+        <div className="cmd-display text-[11px] tracking-[0.2em] uppercase text-center py-10" style={{ color: C.faint }}>
+          Карт пока нет
+        </div>
+      ) : (
+        <div className="space-y-2 mb-8">
+          {cards.map((c) => (
+            <Panel key={c.id} className="flex items-center justify-between">
+              <div>
+                <div className="text-white font-semibold text-[15px]">{c.bank}</div>
+                <div className="cmd-mono text-[11.5px] mt-0.5" style={{ color: C.faint }}>
+                  {c.holderName} · {c.phone}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={() => openEdit(c)} style={{ color: C.faint }}>
+                  <Pencil size={16} />
+                </button>
+                <button onClick={() => removeCard(c.id)} style={{ color: C.coral }}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </Panel>
+          ))}
+        </div>
+      )}
+
+      {cards.length > 0 && (
+        <>
+          <SectionHead icon={Calendar}>Расписание по дням</SectionHead>
+          <div className="space-y-3 pb-10">
+            {cards.map((c) => (
+              <Panel key={c.id}>
+                <div className="text-white font-semibold text-[14px] mb-3">
+                  {c.bank} · {c.holderName}
+                </div>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {WEEKDAYS.map((label, idx) => {
+                    const active = (c.days || []).includes(idx);
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => toggleDay(c.id, idx)}
+                        className="cmd-display flex flex-col items-center justify-center rounded-lg py-2.5 text-[10.5px] font-semibold tracking-wide uppercase transition"
+                        style={{
+                          background: active ? `linear-gradient(135deg, ${C.redSoft}, ${C.red})` : "rgba(255,255,255,0.04)",
+                          color: active ? "#fff" : C.faint,
+                          border: `1px solid ${active ? C.red : C.border}`,
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Panel>
+            ))}
+          </div>
+        </>
+      )}
+
+      <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title={editingId ? "Редактировать карту" : "Новая карта"}>
+        <form onSubmit={submit}>
+          <Field label="Банк">
+            <TextInput value={bank} onChange={(e) => setBank(e.target.value)} placeholder="Сбербанк" />
+          </Field>
+          <Field label="Имя держателя">
+            <TextInput value={holderName} onChange={(e) => setHolderName(e.target.value)} placeholder="Иванов Иван" />
+          </Field>
+          <Field label="Телефон">
+            <TextInput value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7 999 000-11-22" />
+          </Field>
+          <button
+            type="submit"
+            className="cmd-display w-full py-4 rounded-xl font-semibold tracking-[0.14em] uppercase text-white transition active:scale-[0.98]"
+            style={{ background: `linear-gradient(135deg, ${C.redSoft}, ${C.red})`, boxShadow: `0 10px 24px -10px ${C.red}88` }}
+          >
+            {editingId ? "Сохранить" : "Добавить карту"}
+          </button>
+        </form>
+      </Sheet>
+    </div>
+  );
+}
+
 /* ---------- App shell ---------- */
 export default function App() {
   const [user, setUser] = useState(null);
@@ -1144,6 +1373,7 @@ export default function App() {
   const [subjects, setSubjects] = useState([]);
   const [archive, setArchive] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [cards, setCards] = useState([]);
   const [search, setSearch] = useState("");
   const [openSubject, setOpenSubject] = useState(null);
   const [loginError, setLoginError] = useState("");
@@ -1171,6 +1401,7 @@ export default function App() {
         setSubjects(state.subjects || []);
         setArchive(state.archive || []);
         setTransactions(state.transactions || []);
+        setCards(state.cards || []);
         const payload = JSON.parse(atob(token.split(".")[1]));
         setUser(payload.login);
         loadedRef.current = true;
@@ -1200,6 +1431,7 @@ export default function App() {
         setSubjects(state.subjects || []);
         setArchive(state.archive || []);
         setTransactions(state.transactions || []);
+        setCards(state.cards || []);
         setUser(confirmedLogin);
         loadedRef.current = true;
         setBusy(false);
@@ -1219,7 +1451,7 @@ export default function App() {
   function handleLogout() {
     loadedRef.current = false;
     clearToken();
-    setUser(null); setSubjects([]); setArchive([]); setTransactions([]); setTab("overview"); setNotice("");
+    setUser(null); setSubjects([]); setArchive([]); setTransactions([]); setCards([]); setTab("overview"); setNotice("");
   }
 
   // Debounced autosave of the whole account state to this login's isolated database on the server.
@@ -1228,17 +1460,18 @@ export default function App() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       try {
-        await saveState({ subjects, archive, transactions });
+        await saveState({ subjects, archive, transactions, cards });
       } catch {
         setNotice("Не удалось сохранить изменения — сервер недоступен.");
       }
     }, 500);
     return () => clearTimeout(saveTimer.current);
-  }, [subjects, archive, transactions, user]);
+  }, [subjects, archive, transactions, cards, user]);
 
   const NAV = [
     { id: "overview", label: "Обзор", icon: LayoutGrid },
     { id: "people", label: "Люди", icon: Users },
+    { id: "cards", label: "Карты", icon: CreditCard },
     { id: "calc", label: "Расчёт", icon: Calculator },
     { id: "summary", label: "Итоги", icon: BarChart3 },
   ];
@@ -1312,6 +1545,7 @@ export default function App() {
             search={search}
             onSearch={setSearch}
             onOpenSubject={(id) => { setOpenSubject(id); setTab("people"); }}
+            cards={cards}
           />
         )}
         {tab === "people" && (
@@ -1323,13 +1557,14 @@ export default function App() {
             setOpenSubject={setOpenSubject}
           />
         )}
+        {tab === "cards" && <CardsTab cards={cards} setCards={setCards} />}
         {tab === "calc" && <CalcTab archive={archive} setArchive={setArchive} />}
         {tab === "summary" && <Summary subjects={subjects} transactions={transactions} />}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto px-3 pb-3 z-10">
         <div
-          className="glass-strong grid grid-cols-4 rounded-2xl overflow-hidden"
+          className="glass-strong grid grid-cols-5 rounded-2xl overflow-hidden"
           style={{ border: `1px solid ${C.border}` }}
         >
           {NAV.map((n) => {

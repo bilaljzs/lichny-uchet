@@ -65,6 +65,17 @@ async function migrate() {
       position INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS archive_user_id_idx ON archive(user_id);
+
+    CREATE TABLE IF NOT EXISTS cards (
+      id TEXT PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      bank TEXT NOT NULL,
+      holder_name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      days INTEGER[] NOT NULL DEFAULT '{}',
+      position INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS cards_user_id_idx ON cards(user_id);
   `);
 }
 

@@ -61,6 +61,7 @@ app.get("/api/state", requireAuth, async (req, res) => {
       const accountRows = (await client.query("SELECT * FROM accounts WHERE user_id = $1 ORDER BY position ASC", [req.userId])).rows;
       const transactionRows = (await client.query("SELECT * FROM transactions WHERE user_id = $1 ORDER BY position ASC", [req.userId])).rows;
       const archiveRows = (await client.query("SELECT * FROM archive WHERE user_id = $1 ORDER BY position ASC", [req.userId])).rows;
+      const cardRows = (await client.query("SELECT * FROM cards WHERE user_id = $1 ORDER BY position ASC", [req.userId])).rows;
 
       const subjects = subjectRows.map((s) => ({
         id: s.id,
@@ -89,7 +90,15 @@ app.get("/api/state", requireAuth, async (req, res) => {
         time: a.time,
       }));
 
-      return { subjects, transactions, archive };
+      const cards = cardRows.map((c) => ({
+        id: c.id,
+        bank: c.bank,
+        holderName: c.holder_name,
+        phone: c.phone,
+        days: c.days || [],
+      }));
+
+      return { subjects, transactions, archive, cards };
     });
 
     res.json(state);
@@ -100,7 +109,7 @@ app.get("/api/state", requireAuth, async (req, res) => {
 });
 
 app.put("/api/state", requireAuth, async (req, res) => {
-  const { subjects = [], transactions = [], archive = [] } = req.body || {};
+  const { subjects = [], transactions = [], archive = [], cards = [] } = req.body || {};
 
   try {
     await withTransaction(async (client) => {
@@ -108,6 +117,7 @@ app.put("/api/state", requireAuth, async (req, res) => {
       await client.query("DELETE FROM subjects WHERE user_id = $1", [req.userId]);
       await client.query("DELETE FROM transactions WHERE user_id = $1", [req.userId]);
       await client.query("DELETE FROM archive WHERE user_id = $1", [req.userId]);
+      await client.query("DELETE FROM cards WHERE user_id = $1", [req.userId]);
 
       for (let si = 0; si < subjects.length; si++) {
         const s = subjects[si];
@@ -138,6 +148,14 @@ app.put("/api/state", requireAuth, async (req, res) => {
         await client.query(
           "INSERT INTO archive (id, user_id, amount, buy, sell, result, time, position) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
           [a.id, req.userId, a.amount, a.buy, a.sell, a.result, a.time, i]
+        );
+      }
+
+      for (let i = 0; i < cards.length; i++) {
+        const c = cards[i];
+        await client.query(
+          "INSERT INTO cards (id, user_id, bank, holder_name, phone, days, position) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+          [c.id, req.userId, c.bank, c.holderName, c.phone, Array.isArray(c.days) ? c.days : [], i]
         );
       }
     });
