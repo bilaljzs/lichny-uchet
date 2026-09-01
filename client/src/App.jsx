@@ -21,39 +21,39 @@ import AccountCardCarousel from "./components/AccountCardCarousel";
 
 const FONTS = (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Cormorant:ital@1&family=Marcellus&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Cormorant:ital@1&family=Marcellus&display=swap');
     .cmd-root { font-family: 'Inter', system-ui, sans-serif; background: ${C.bg}; }
     .cmd-display { font-family: 'Space Grotesk', system-ui, sans-serif; }
     .cmd-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
-    .cmd-serif { font-family: 'Fraunces', Georgia, serif; font-style: italic; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+    .cmd-serif { font-family: 'Cormorant', Georgia, serif; font-style: italic; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 
     .yamakassi-word { font-family: 'Cormorant', serif; font-style: italic; font-size: 19px; line-height: 1; color: ${C.gold}; }
     .yamakassi-sub { font-family: 'Marcellus', serif; font-size: 7.5px; letter-spacing: 0.35em; color: ${C.red}; margin-top: 3px; }
 
-    .aurora-wrap { position: fixed; inset: 0; overflow: hidden; z-index: 0; animation: hue-drift 50s linear infinite; }
-    .aurora-blob { position: absolute; border-radius: 9999px; filter: blur(50px); opacity: 0.85; mix-blend-mode: screen; will-change: transform; }
-    .aurora-a { width: 68vw; height: 68vw; background: radial-gradient(circle, ${C.red}, transparent 68%); top: -18vw; left: -14vw; animation: drift-a 16s ease-in-out infinite; opacity: 0.55; }
-    .aurora-b { width: 62vw; height: 62vw; background: radial-gradient(circle, #0f2350, transparent 68%); bottom: -20vw; right: -16vw; animation: drift-b 19s ease-in-out infinite; }
-    .aurora-c { width: 52vw; height: 52vw; background: radial-gradient(circle, ${C.chrome}, transparent 68%); top: 28vh; right: -12vw; animation: drift-c 14s ease-in-out infinite; opacity: 0.14; }
-    .aurora-d { width: 34vw; height: 34vw; background: radial-gradient(circle, ${C.goldSoft}, transparent 72%); top: 8vh; left: 20vw; opacity: 0.12; animation: drift-d 11s ease-in-out infinite; }
+    .aurora-wrap { position: fixed; inset: 0; overflow: hidden; z-index: 0; animation: hue-drift 70s linear infinite; }
+    .aurora-blob { position: absolute; border-radius: 9999px; filter: blur(60px); opacity: 0.6; mix-blend-mode: screen; will-change: transform; }
+    .aurora-a { width: 68vw; height: 68vw; background: radial-gradient(circle, ${C.red}, transparent 68%); top: -18vw; left: -14vw; animation: drift-a 22s ease-in-out infinite; opacity: 0.32; }
+    .aurora-b { width: 62vw; height: 62vw; background: radial-gradient(circle, #241540, transparent 68%); bottom: -20vw; right: -16vw; animation: drift-b 26s ease-in-out infinite; }
+    .aurora-c { width: 52vw; height: 52vw; background: radial-gradient(circle, ${C.chrome}, transparent 68%); top: 28vh; right: -12vw; animation: drift-c 19s ease-in-out infinite; opacity: 0.09; }
+    .aurora-d { width: 34vw; height: 34vw; background: radial-gradient(circle, ${C.goldSoft}, transparent 72%); top: 8vh; left: 20vw; opacity: 0.07; animation: drift-d 15s ease-in-out infinite; }
     @keyframes drift-a { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(16vw,18vh) scale(1.22); } }
     @keyframes drift-b { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-15vw,-14vh) scale(1.18); } }
     @keyframes drift-c { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-14vw,16vh) scale(0.86); } }
     @keyframes drift-d { 0%,100% { transform: translate(0,0); } 50% { transform: translate(10vw,12vh); } }
-    @keyframes hue-drift { 0% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(10deg); } 100% { filter: hue-rotate(0deg); } }
+    @keyframes hue-drift { 0% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(6deg); } 100% { filter: hue-rotate(0deg); } }
     @media (prefers-reduced-motion: reduce) { .aurora-blob, .aurora-wrap { animation: none !important; } }
 
-    .glass { background: ${C.surfaceGlass}; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-    .glass-strong { background: ${C.surfaceGlassStrong}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .glass { background: ${C.surfaceGlass}; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+    .glass-strong { background: ${C.surfaceGlassStrong}; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
     @keyframes cmd-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
     .cmd-pulse { animation: cmd-pulse 2s ease-in-out infinite; }
-    input::placeholder, textarea::placeholder { color: rgba(246,244,238,0.28); }
+    input::placeholder, textarea::placeholder { color: rgba(244,241,248,0.28); }
     .cmd-fade-in { animation: cmd-fade-in 0.3s cubic-bezier(0.16,1,0.3,1) both; }
     @keyframes cmd-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
     .ferrari-hero { position: relative; width: 100%; max-width: 340px; margin: 0 auto; }
-    .ferrari-glow { position: absolute; inset: -20% -10% auto -10%; height: 140%; border-radius: 9999px; background: radial-gradient(ellipse at center, rgba(63,127,224,0.55), rgba(63,127,224,0.08) 55%, transparent 75%); filter: blur(18px); animation: ferrari-glow-pulse 3.2s ease-in-out infinite; }
+    .ferrari-glow { position: absolute; inset: -20% -10% auto -10%; height: 140%; border-radius: 9999px; background: radial-gradient(ellipse at center, rgba(138,99,232,0.55), rgba(138,99,232,0.08) 55%, transparent 75%); filter: blur(18px); animation: ferrari-glow-pulse 3.2s ease-in-out infinite; }
     @keyframes ferrari-glow-pulse { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
     .ferrari-img-wrap { position: relative; overflow: hidden; animation: ferrari-float 5s ease-in-out infinite; }
     @keyframes ferrari-float { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(-0.6deg); } }
