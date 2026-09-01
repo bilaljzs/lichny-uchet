@@ -1148,7 +1148,7 @@ function todayDayIndex() {
 }
 
 function cardLine(c) {
-  return `${c.bank}/${c.holderName}/${c.phone}`;
+  return `${c.bank}\n\n${c.holderName}\n\n${c.phone}`;
 }
 
 function TodayCards({ cards }) {
@@ -1159,7 +1159,7 @@ function TodayCards({ cards }) {
   if (cards.length === 0) return null;
 
   function copyAll() {
-    navigator.clipboard.writeText(todays.map(cardLine).join("\n")).then(() => {
+    navigator.clipboard.writeText(todays.map(cardLine).join("\n\n")).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     });
