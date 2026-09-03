@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useId } from "react";
 import { createPortal } from "react-dom";
 import {
   LayoutGrid, Users, Calculator, BarChart3, Plus, LogOut, CreditCard,
@@ -10,13 +10,13 @@ import { C, STATUSES, STATUS_COLOR } from "./theme";
 import AccountCardCarousel from "./components/AccountCardCarousel";
 
 /* ============================================================
-   DESIGN TOKENS — v5 "Scuderia" (see ./theme.js)
-   Elite/racing repaint: near-black carbon surfaces, Ferrari red as
+   DESIGN TOKENS — v9 "Yamakassi Copper" (see ./theme.js)
+   Full redesign: espresso-black carbon surfaces, warm copper as
    the primary brand/interactive accent (borders, buttons, active
-   states), gold reserved specifically for money figures (₽ values),
-   mint/coral kept for financial gain/loss. The aurora glow behind
-   the glass panels is recolored to red/crimson/chrome, and the
-   login screen carries an animated hero shot of the car.
+   states), ivory-cream reserved for money figures (₽ values),
+   mint/coral kept for financial gain/loss. The car-hero photo is
+   gone — the login screen and its transition now carry a drawn
+   medallion emblem (see the Medallion component) instead.
    ============================================================ */
 
 const FONTS = (
@@ -33,7 +33,7 @@ const FONTS = (
     .aurora-wrap { position: fixed; inset: 0; overflow: hidden; z-index: 0; animation: hue-drift 70s linear infinite; }
     .aurora-blob { position: absolute; border-radius: 9999px; filter: blur(60px); opacity: 0.6; mix-blend-mode: screen; will-change: transform; }
     .aurora-a { width: 68vw; height: 68vw; background: radial-gradient(circle, ${C.red}, transparent 68%); top: -18vw; left: -14vw; animation: drift-a 22s ease-in-out infinite; opacity: 0.32; }
-    .aurora-b { width: 62vw; height: 62vw; background: radial-gradient(circle, #241540, transparent 68%); bottom: -20vw; right: -16vw; animation: drift-b 26s ease-in-out infinite; }
+    .aurora-b { width: 62vw; height: 62vw; background: radial-gradient(circle, #2e1b0f, transparent 68%); bottom: -20vw; right: -16vw; animation: drift-b 26s ease-in-out infinite; }
     .aurora-c { width: 52vw; height: 52vw; background: radial-gradient(circle, ${C.chrome}, transparent 68%); top: 28vh; right: -12vw; animation: drift-c 19s ease-in-out infinite; opacity: 0.09; }
     .aurora-d { width: 34vw; height: 34vw; background: radial-gradient(circle, ${C.goldSoft}, transparent 72%); top: 8vh; left: 20vw; opacity: 0.07; animation: drift-d 15s ease-in-out infinite; }
     @keyframes drift-a { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(16vw,18vh) scale(1.22); } }
@@ -52,14 +52,14 @@ const FONTS = (
     .cmd-fade-in { animation: cmd-fade-in 0.3s cubic-bezier(0.16,1,0.3,1) both; }
     @keyframes cmd-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    .ferrari-hero { position: relative; width: 100%; max-width: 340px; margin: 0 auto; }
-    .ferrari-glow { position: absolute; inset: -20% -10% auto -10%; height: 140%; border-radius: 9999px; background: radial-gradient(ellipse at center, rgba(138,99,232,0.55), rgba(138,99,232,0.08) 55%, transparent 75%); filter: blur(18px); animation: ferrari-glow-pulse 3.2s ease-in-out infinite; }
-    @keyframes ferrari-glow-pulse { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
-    .ferrari-img-wrap { position: relative; overflow: hidden; animation: ferrari-float 5s ease-in-out infinite; }
-    @keyframes ferrari-float { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(-0.6deg); } }
-    .ferrari-shine { position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(115deg, transparent, rgba(255,255,255,0.55), transparent); transform: skewX(-18deg); animation: ferrari-shine-sweep 3.6s ease-in-out infinite; animation-delay: 1s; mix-blend-mode: overlay; }
-    @keyframes ferrari-shine-sweep { 0% { left: -60%; } 35%,100% { left: 130%; } }
-    @media (prefers-reduced-motion: reduce) { .ferrari-glow, .ferrari-img-wrap, .ferrari-shine { animation: none !important; } }
+    .medal-hero { position: relative; width: 62%; max-width: 210px; margin: 0 auto; }
+    .medal-glow { position: absolute; inset: -18%; border-radius: 9999px; background: radial-gradient(circle at center, rgba(200,98,46,0.55), rgba(200,98,46,0.08) 55%, transparent 75%); filter: blur(20px); animation: medal-glow-pulse 3.2s ease-in-out infinite; }
+    @keyframes medal-glow-pulse { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+    .medal-wrap { position: relative; overflow: hidden; border-radius: 9999px; animation: medal-float 5s ease-in-out infinite; }
+    @keyframes medal-float { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(1.2deg); } }
+    .medal-shine { position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(115deg, transparent, rgba(255,255,255,0.5), transparent); transform: skewX(-18deg); animation: medal-shine-sweep 3.6s ease-in-out infinite; animation-delay: 1s; mix-blend-mode: overlay; }
+    @keyframes medal-shine-sweep { 0% { left: -60%; } 35%,100% { left: 130%; } }
+    @media (prefers-reduced-motion: reduce) { .medal-glow, .medal-wrap, .medal-shine { animation: none !important; } }
 
     .login-form-exit { animation: form-exit 0.35s ease forwards; }
     @keyframes form-exit { to { opacity: 0; transform: scale(0.92); } }
@@ -68,18 +68,18 @@ const FONTS = (
     .login-transition-overlay { position: fixed; inset: 0; z-index: 9999; overflow: hidden; pointer-events: none; }
 
     .drive-car-img {
-      position: absolute; top: 55%; left: 0; width: 65vw; max-width: 420px; height: auto;
-      transform: translate(-20vw, -50%) scale(1);
+      position: absolute; top: 55%; left: 0; width: 22vw; max-width: 130px; height: auto;
+      transform: translate(-20vw, -50%) rotate(0deg) scale(1);
       animation: car-launch 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(0px);
     }
     @keyframes car-launch {
-      0%   { transform: translate(-20vw, -50%) scale(1, 1); filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55)) blur(0px); }
-      5%   { transform: translate(-21vw, -49%) scale(1.05, 0.95); filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5)) blur(0px); }
-      13%  { transform: translate(-16vw, -50%) scale(1, 1); filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(1.6px); }
-      55%  { filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(2px); }
-      88%  { filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(1px); }
-      100% { transform: translate(120vw, -50%) scale(1, 1); filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(0px); }
+      0%   { transform: translate(-20vw, -50%) rotate(0deg) scale(1, 1); filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55)) blur(0px); }
+      5%   { transform: translate(-21vw, -49%) rotate(-10deg) scale(1.05, 0.95); filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5)) blur(0px); }
+      13%  { transform: translate(-16vw, -50%) rotate(30deg) scale(1, 1); filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(1.6px); }
+      55%  { transform: translate(52vw, -50%) rotate(430deg) scale(1, 1); filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(2px); }
+      88%  { transform: translate(96vw, -50%) rotate(690deg) scale(1, 1); filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(1px); }
+      100% { transform: translate(120vw, -50%) rotate(760deg) scale(1, 1); filter: drop-shadow(0 14px 22px rgba(0,0,0,0.6)) blur(0px); }
     }
 
     /* layer 1: fine dust kicked up from the rear wheel at launch — one shared blur, not per-particle */
@@ -133,6 +133,30 @@ const FONTS = (
   `}</style>
 );
 
+/* ---------- Medallion: drawn Yamakassi emblem, replaces the old car-hero photo ---------- */
+function Medallion({ className = "" }) {
+  const uidBase = useId();
+  const gradId = `medal-fill-${uidBase}`;
+  return (
+    <svg viewBox="0 0 200 200" className={className} style={{ display: "block" }}>
+      <defs>
+        <radialGradient id={gradId} cx="35%" cy="30%" r="80%">
+          <stop offset="0%" stopColor={C.surfaceGlassStrong} />
+          <stop offset="100%" stopColor={C.bg} />
+        </radialGradient>
+      </defs>
+      <circle cx="100" cy="100" r="92" fill="none" stroke={C.red} strokeWidth="1" opacity="0.3" />
+      <circle cx="100" cy="100" r="80" fill={`url(#${gradId})`} stroke={C.redSoft} strokeWidth="2" />
+      <circle cx="100" cy="100" r="70" fill="none" stroke={C.gold} strokeWidth="0.75" opacity="0.55" />
+      <circle cx="100" cy="18" r="2.4" fill={C.gold} />
+      <circle cx="182" cy="100" r="2.4" fill={C.gold} />
+      <circle cx="100" cy="182" r="2.4" fill={C.gold} />
+      <circle cx="18" cy="100" r="2.4" fill={C.gold} />
+      <text x="100" y="127" textAnchor="middle" fontFamily="Cormorant, serif" fontStyle="italic" fontSize="86" fill={C.gold}>Y</text>
+    </svg>
+  );
+}
+
 function LoginTransition({ phase }) {
   return createPortal(
     <div className="login-transition-overlay">
@@ -156,7 +180,7 @@ function LoginTransition({ phase }) {
         <div className="smoke-cloud cloud-9" />
         <div className="smoke-cloud cloud-10" />
       </div>
-      <img src="/assets/car-hero.png" alt="" className="drive-car-img" draggable="false" />
+      <Medallion className="drive-car-img" />
       <div className={`smog-overlay ${phase === "fadeout" ? "smog-out" : "smog-in"}`} />
     </div>,
     document.body
@@ -299,11 +323,11 @@ function Login({ onLogin, error, busy, transitioning }) {
           <div className="yamakassi-sub" style={{ marginTop: 4 }}>CASH</div>
         </div>
 
-        <div className="ferrari-hero mb-6">
-          <div className="ferrari-glow" />
-          <div className="ferrari-img-wrap">
-            <img src="/ferrari.png" alt="" className="relative w-full select-none pointer-events-none" draggable="false" />
-            <div className="ferrari-shine" />
+        <div className="medal-hero mb-6">
+          <div className="medal-glow" />
+          <div className="medal-wrap">
+            <Medallion className="relative w-full select-none pointer-events-none" />
+            <div className="medal-shine" />
           </div>
         </div>
 
